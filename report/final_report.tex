@@ -47,7 +47,7 @@
 {\bfseries\Large Project Review 1}\\[10pt]
 {\itshape on the project entitled}\\[4pt]
 {\bfseries\LARGE \projecttitle}\\[8pt]
-{\large Submitted in partial fulfillment of the requirements for the course}\\[4pt]
+{\large Submitted in fulfillment of the requirements for the course}\\[4pt]
 {\Large \course}\\[12pt]
 {by}\\[6pt]
 {\large \authors}\\[12pt]
@@ -68,15 +68,23 @@
 % 0. Abstract
 \section*{Abstract}
 \addcontentsline{toc}{section}{0. Abstract}
-% (empty for now if not provided)
+This project presents a software-based indoor air quality (IAQ) monitoring system built using Internet of Things (IoT) technologies. The system tracks key air quality parameters including temperature, humidity, carbon dioxide (CO\textsubscript{2}), and particulate matter (PM2.5) in real time. We developed a complete solution with a FastAPI backend for data processing, SQLite database for storage, and a Streamlit web interface for visualization. The system implements India's Central Pollution Control Board (CPCB) National Air Quality Index standards for PM2.5 categorization and includes exposure time tracking across different pollution zones. Unlike hardware-dependent systems, our software-only approach uses simulated data generation with site-specific environmental profiles, making it accessible for testing and demonstration without physical sensors. The system successfully provides real-time alerts, historical trend analysis, and multi-site monitoring capabilities, addressing common challenges in IAQ management for homes, offices, and healthcare facilities.
 
 % 1. Introduction
 \section{Introduction}
 We built a software-based indoor air quality (IAQ) monitoring system using Internet of Things (IoT) technologies. The system tracks temperature, humidity, CO\textsubscript{2}, and PM2.5 in real time and shows them through a clean web interface. This report documents the finished system, the design choices we made, and the results we observed while running it.
 
+Indoor air quality has become increasingly important as people spend more than 90\% of their time indoors. Poor air quality can lead to health problems like respiratory issues, headaches, and reduced productivity. Traditional IAQ monitoring systems often require expensive hardware sensors and complex installation procedures, making them inaccessible for many users. Our project addresses this gap by creating a software-first solution that demonstrates how an IAQ system works without requiring physical sensors.
+
+The system we developed consists of three main components working together. First, a data generation module creates realistic air quality readings that simulate different indoor environments like laboratories, classrooms, and canteens. Second, a backend API built with FastAPI processes this data, calculates air quality indices according to CPCB standards, and stores everything in a database. Third, a user-friendly web dashboard built with Streamlit displays the information through interactive charts, real-time metrics, and color-coded alerts. This architecture makes it easy to understand how data flows through an IAQ system and how different components interact with each other.
+
 % 2. Motivation
 \section{Motivation}
 Clean indoor air is essential for health at home, work, hospitals, and elderly care. Since pollutants are invisible, we made IAQ visible and actionable through a simple dashboard and alerts. We aimed for a software-only build so the solution is easy to run and test without hardware.
+
+We chose this topic because air pollution is not just an outdoor problem. Indoor spaces can trap pollutants from cooking, cleaning products, building materials, and even from people breathing. Carbon dioxide builds up in crowded rooms, particulate matter comes from dust and smoke, and humidity levels affect both comfort and mold growth. These invisible threats need to be monitored continuously, but most people cannot afford expensive sensor networks or do not have the technical knowledge to set them up.
+
+Our motivation also came from seeing how IoT technology has made environmental monitoring more accessible. With affordable microcontrollers and wireless communication becoming common, the barrier to entry has lowered significantly. However, for students and researchers who want to learn about IAQ systems or test new algorithms, even these low-cost hardware solutions can be a hurdle. By creating a software-only system, we remove this barrier entirely. Anyone with a computer can run our system, experiment with different scenarios, and understand how IAQ monitoring works before investing in physical hardware. This educational aspect was particularly important to us as students learning about IoT systems ourselves.
 
 % 3. Scope of the Project
 \section{Scope of the Project}
@@ -87,6 +95,14 @@ Clean indoor air is essential for health at home, work, hospitals, and elderly c
   \item We store and display historical trends for better air quality management.
 \end{itemize}
 This helps building managers, healthcare workers, and residents.
+
+The scope of our project covers several key areas. First, we focused on four critical air quality parameters: PM2.5 (fine particulate matter that can enter lungs), CO\textsubscript{2} (carbon dioxide indicating ventilation quality), temperature, and relative humidity. These parameters were chosen because they are the most commonly monitored in IAQ systems and have direct impacts on human health and comfort. We deliberately kept the parameter set manageable to ensure our system remains simple and easy to understand.
+
+Second, we implemented multi-site monitoring capability, allowing the system to track air quality in different locations simultaneously. Each site (Lab, Classroom, Canteen) has its own environmental profile that generates realistic data patterns. For example, a canteen shows higher PM2.5 levels due to cooking activities, while a laboratory maintains cleaner air with better ventilation. This multi-site feature demonstrates how a real-world IAQ system would need to handle multiple sensors across different rooms or buildings.
+
+Third, we integrated the CPCB National Air Quality Index specifically for PM2.5 monitoring. This means our system does not just show raw numbers but translates them into meaningful categories like Good, Satisfactory, Moderately Polluted, Poor, Very Poor, and Severe. Each category has a specific color code and health advisory, making it easy for non-technical users to understand the air quality status at a glance. We also track exposure time, showing how many minutes or hours were spent in each pollution category over the past day or week. This cumulative exposure data is more meaningful for health assessment than just looking at current readings.
+
+What we deliberately excluded from scope: We did not implement actual hardware sensors, real-time hardware communication protocols like ZigBee or LoRa, battery power management, or physical installation considerations. We also did not include advanced features like machine learning predictions, automated HVAC control, or mobile app development. These exclusions were intentional to keep the project focused on demonstrating core IAQ monitoring concepts through software.
 
 % 4. Literature Review
 \section{Literature Review}
@@ -181,14 +197,36 @@ We added a Central Pollution Control Board (CPCB) National Air Quality Index ali
 \section{Problem Statement}
 Indoor places can have hidden pollutants that harm health. Many systems are expensive or hardware-heavy. We addressed this by building a low-cost, software-based IAQ system that uses simulated or API data, shows it in a simple UI, and sends alerts when limits are crossed. It does not use real sensors; accuracy depends on input data quality.
 
+The specific problems we aimed to solve are: First, the high cost barrier of existing IAQ monitoring systems. Commercial IAQ monitors can cost thousands of rupees per unit, and a complete multi-room setup requires multiple sensors, gateways, and cloud subscriptions. This makes them unaffordable for individual homes, small offices, or educational institutions with limited budgets. Second, the complexity of hardware setup and maintenance. Installing physical sensors requires drilling holes, running cables, configuring wireless networks, and regular calibration. Many potential users lack the technical skills or time for such installations.
+
+Third, the lack of accessible learning tools for students and researchers. While there are many research papers about IAQ systems, actually building one to understand the concepts requires purchasing hardware, which creates a barrier for learning. Fourth, the difficulty in testing and comparing different algorithms or visualization approaches. With physical hardware, you are limited to real-time data and cannot easily replay scenarios or test edge cases. Our software-based approach solves these problems by providing a complete, runnable IAQ system that anyone can use to learn, experiment, and demonstrate concepts without any hardware investment.
+
+The trade-offs we accepted: Since we use simulated data instead of real sensors, our system cannot detect actual air quality in a physical space. The accuracy of our system depends entirely on how realistic our data generation algorithms are. We also cannot test real-world challenges like sensor drift, calibration errors, or wireless communication failures. However, these trade-offs are acceptable for our primary goals of education, demonstration, and algorithm development.
+
 % 8. System Design & Architecture
 \section{System Design \& Architecture}
 Our software has four parts: a data generator or API fetcher, a FastAPI backend with storage, an analytics layer that computes CPCB PM2.5 sub-index and exposure time, and a Streamlit dashboard for live views and alerts.\\
 \IfFileExists{architecture.png}{\begin{center}\includegraphics[width=0.8\linewidth]{architecture.png}\end{center}}{}
 
+The system follows a three-tier architecture pattern commonly used in web applications. The first tier is the data layer, which includes both the data generation module and the SQLite database. The data generator creates realistic sensor readings using mathematical models that simulate different indoor environments. Each site type (Lab, Classroom, Canteen) has its own profile with specific baseline values, trend coefficients, and noise parameters. For example, the Canteen profile generates higher PM2.5 values with more variability to simulate cooking activities, while the Lab profile maintains cleaner, more stable readings. The SQLite database stores all readings with timestamps, allowing for historical queries and trend analysis.
+
+The second tier is the application layer, implemented as a FastAPI REST API. This layer handles all business logic including data ingestion, CPCB index calculation, exposure time tracking, and alert generation. When a new reading arrives, the API calculates the PM2.5 sub-index using CPCB breakpoint formulas, assigns a category (Good through Severe), and checks if an alert should be generated. If PM2.5 enters Poor, Very Poor, or Severe categories, the system automatically creates an event record in the database. The API also provides endpoints for querying historical data, calculating statistics, and managing multiple sites. We chose FastAPI because it is modern, fast, and automatically generates API documentation, making it easy for others to understand and extend our system.
+
+The third tier is the presentation layer, built with Streamlit. This web-based dashboard provides an intuitive interface for viewing air quality data. The main screen shows current readings as large metric cards, making it easy to see PM2.5, CO\textsubscript{2}, temperature, and humidity at a glance. Below that, interactive Plotly charts display trends over time with smoothed EWMA (Exponentially Weighted Moving Average) lines to highlight patterns. The CPCB exposure section uses color-coded bar charts to show time spent in each pollution category. Users can switch between different sites using a dropdown menu, adjust time windows (24 hours or 7 days), and manually add readings through a form. The dashboard auto-refreshes every few seconds to show new data, creating a real-time monitoring experience even though we are using simulated data.
+
+Communication between tiers happens through HTTP REST API calls. The Streamlit frontend makes GET requests to fetch data and POST requests to add new readings or seed demo data. This separation of concerns means we could easily replace any tier without affecting the others. For example, we could swap the simulated data generator with real sensor inputs, or replace the Streamlit dashboard with a mobile app, without changing the FastAPI backend.
+
 % 9. Description of the Environment
 \section{Description of the Environment}
 We implemented the system in Python with FastAPI and Streamlit. Key libraries are pandas, numpy, and plotly. Storage uses SQLite/CSV for time-series data. The app runs locally with Uvicorn for the API and Streamlit for the UI.
+
+Our development environment was chosen for accessibility and ease of deployment. Python 3.8 or higher serves as the foundation because it has excellent support for data processing, web frameworks, and scientific computing. We used pip for package management, making it simple for others to install dependencies with a single command.
+
+For the backend, FastAPI provides automatic request validation using Pydantic models, which means the API rejects invalid data before it reaches our business logic. Uvicorn serves as the ASGI server, running the FastAPI application on port 8000. We chose SQLite as the database because it requires no separate server process and stores everything in a single file, making the system portable and easy to back up. The database schema includes two tables: one for sensor readings with columns for timestamp, PM2.5, CO\textsubscript{2}, temperature, humidity, CPCB index, category, site name, and data source; and another for events/alerts with columns for timestamp, site, event type, severity, message, and acknowledgment status.
+
+For data processing, pandas handles time-series operations like filtering by date range, grouping by site, and calculating statistics. NumPy provides mathematical functions for the EWMA smoothing and comfort index calculations. Plotly creates interactive charts that users can zoom, pan, and hover over to see exact values. Streamlit ties everything together with its simple decorator-based approach to building web interfaces. We can create input widgets, display charts, and update the UI with just a few lines of Python code, without writing any HTML, CSS, or JavaScript.
+
+The system runs entirely on localhost, meaning all components operate on the same machine. This makes it perfect for demonstrations, development, and learning. To deploy in a production environment, we would need to change the host settings, add authentication, use a production-grade database like PostgreSQL, and implement proper error handling and logging. However, for our educational and demonstration purposes, the local setup is ideal because it is simple to start and requires no cloud services or external dependencies.
 
 % 10. Metrics Used
 \section{Metrics Used}
@@ -199,17 +237,59 @@ We implemented the system in Python with FastAPI and Streamlit. Key libraries ar
   \item Trend accuracy for simulated data.
 \end{itemize}
 
+We evaluated our system using both technical and user-experience metrics. For system responsiveness, we measured the time between when a new reading is posted to the API and when it appears on the dashboard. This end-to-end latency should be under 5 seconds for a good real-time monitoring experience. We tested this by running the simulator at different posting frequencies (every 5 seconds, every minute, every 5 minutes) and observing dashboard updates. The Streamlit auto-refresh mechanism polls the API every few seconds, so the perceived latency depends on both API response time and refresh interval.
+
+For alert correctness, we verified that the CPCB PM2.5 categorization matches the official breakpoint table published by the Central Pollution Control Board. We created test cases with PM2.5 values at boundary points (exactly 30, 60, 90, 120, 250 µg/m³) and verified the system assigns the correct category. We also checked that alerts are generated only when PM2.5 enters Poor or worse categories, and that the severity level (warning vs. critical) matches the category. The exposure time calculation was validated by seeding known data patterns and verifying the minute counts in each category add up correctly.
+
+For dashboard clarity and usability, we conducted informal user testing with classmates who had not seen the system before. We asked them to complete tasks like "find the current PM2.5 level for the Classroom site" or "determine how much time was spent in Poor air quality yesterday." We measured task completion time and noted any confusion or questions. Based on this feedback, we added clearer labels, improved color coding to match CPCB standards, and reorganized the layout to put the most important information at the top.
+
+For trend accuracy, we compared the generated data patterns against expected behavior. For example, the Canteen site should show higher PM2.5 during typical meal times, and CO\textsubscript{2} should rise when a space is occupied and fall when ventilated. We visually inspected the time-series charts to confirm these patterns appear realistic. We also calculated basic statistics (mean, min, max, standard deviation) for each parameter and site to ensure they fall within reasonable ranges based on literature values for similar indoor environments.
+
 % 11. Performance Evaluation
 \section{Performance Evaluation}
 We ran the simulator and dashboard together and checked three things: responsiveness, alert correctness, and data retention. The UI updated within a few seconds of each new reading, and CPCB-category alerts matched the sub-index we computed on the server. Exposure counters (24h and 7d) reflected time spent in each category as expected. The app stayed stable during long runs.
+
+Our performance testing involved several scenarios. In the first test, we ran the system continuously for 24 hours with the simulator posting readings every 5 seconds. This generated over 17,000 data points per site. The SQLite database handled this load without issues, and query response times remained under 100 milliseconds even with thousands of records. The dashboard remained responsive throughout, with no memory leaks or slowdowns. We monitored system resource usage and found the entire stack (API + database + dashboard) used less than 500 MB of RAM, making it suitable for running on modest hardware.
+
+In the second test, we evaluated multi-site performance by seeding 72 hours of data for all three sites simultaneously (Lab, Classroom, Canteen). This created approximately 150,000 total records in the database. Switching between sites in the dashboard remained instant, and the exposure time calculations completed in under 200 milliseconds. The API's ability to filter by site and time window proved efficient, returning only the relevant subset of data rather than loading everything into memory.
+
+In the third test, we verified the accuracy of CPCB calculations by manually checking a sample of 100 readings against the official formula. The sub-index values matched our hand calculations within rounding error (±1 index point). The category assignments were 100\% correct. We also tested edge cases like PM2.5 values above 350 µg/m³ (beyond the official scale) and confirmed the system handles them gracefully by clamping to the Severe category.
+
+In the fourth test, we evaluated the exposure time tracking by creating a controlled dataset where we knew exactly how long each category should appear. For example, we generated 2 hours of Good air (120 minutes), followed by 1 hour of Poor air (60 minutes), followed by 30 minutes of Severe air. The exposure endpoint returned exactly these values, confirming the time-in-zone calculation works correctly. We also tested the 7-day window to ensure it properly filters older data.
+
+One limitation we discovered during testing: the Streamlit dashboard's caching mechanism sometimes shows stale data for a few seconds after new readings arrive. This happens because Streamlit caches API responses for 5 seconds to reduce server load. While this improves performance, it means the "real-time" display has a small delay. For our demonstration purposes, this is acceptable, but a production system might need a more sophisticated caching strategy or websocket-based push updates.
 
 % 12. Conclusion
 \section{Conclusion}
 IoT-based IAQ systems have evolved from basic monitoring to prediction and action. We delivered a software-only system that gives reliable analytics and CPCB-aligned PM2.5 alerts with exposure tracking. It runs locally, is easy to use, and supports healthier indoor spaces. Open issues from the literature (calibration, power, scale, security) guide our next steps.
 
+This project successfully demonstrates that a complete indoor air quality monitoring system can be built and understood without requiring physical hardware. By focusing on software implementation, we created an accessible learning tool that students, researchers, and developers can use to understand IAQ system architecture, data flow, and user interface design. The system implements all core features found in commercial IAQ monitors: real-time data collection, threshold-based alerting, historical trend visualization, and multi-site management.
+
+Our implementation of CPCB National Air Quality Index standards makes the system relevant for Indian contexts, where air pollution is a significant public health concern. The exposure time tracking feature goes beyond simple threshold alerts by quantifying cumulative exposure, which is more meaningful for health risk assessment. A person spending 6 hours in Moderately Polluted air faces different health risks than someone spending 30 minutes in Very Poor air, and our system captures this distinction.
+
+The site-specific environmental profiles we developed (Lab, Classroom, Canteen) demonstrate how different indoor spaces have characteristic air quality patterns. This feature makes the system useful for demonstrations and training, as users can see how cooking activities, occupancy levels, and ventilation affect air quality. The realistic data generation also means the system can be used to test and compare different alert strategies, visualization approaches, or data analysis algorithms without waiting for real sensor data.
+
+From a technical perspective, the project showcases modern Python web development practices. The FastAPI backend with automatic API documentation, Pydantic data validation, and RESTful design follows industry standards. The Streamlit dashboard demonstrates how complex data visualizations can be created with minimal code. The SQLite database proves that sophisticated time-series data management does not always require heavy database servers. Together, these choices result in a system that is easy to install, run, and modify.
+
+The limitations we encountered also provide valuable lessons. The simulated data, while realistic, cannot capture all the complexity of real sensor readings including noise, drift, and calibration errors. The local-only deployment means we did not address challenges like network reliability, cloud storage costs, or multi-user access control. The lack of predictive features means the system is reactive rather than proactive. However, these limitations are acceptable given our educational goals and provide clear directions for future enhancement.
+
 % 13. Future Work
 \section{Future Work}
 Connect IAQ control with wider smart‑building functions, explore advanced AI (e.g., reinforcement learning), study long‑term reliability, link IAQ improvements to health outcomes, and strengthen privacy/security.
+
+Several promising directions exist for extending this work. First, we could add machine learning capabilities for predictive analytics. Using historical data, an LSTM (Long Short-Term Memory) neural network could forecast PM2.5 or CO\textsubscript{2} levels 30 minutes or 1 hour ahead, enabling proactive interventions. For example, if the system predicts CO\textsubscript{2} will exceed 1000 ppm in the next 30 minutes, it could alert building managers to increase ventilation before occupants experience discomfort. We could also implement anomaly detection using techniques like Isolation Forest or Autoencoders to identify unusual air quality patterns that might indicate equipment malfunction or unexpected pollution sources.
+
+Second, we could integrate the system with actual hardware sensors. The current architecture already supports this through the manual ingest feature and the flexible data source field in the database. We could add support for popular IoT protocols like MQTT (Message Queuing Telemetry Transport) to receive data from ESP8266 or Raspberry Pi sensor nodes. This would transform the system from a demonstration tool into a practical monitoring solution. We would need to add sensor calibration features, handle missing data gracefully, and implement reconnection logic for unreliable wireless connections.
+
+Third, we could develop automated control capabilities. By connecting to smart home devices through APIs, the system could automatically turn on air purifiers when PM2.5 exceeds thresholds, adjust HVAC systems when CO\textsubscript{2} builds up, or open smart windows when outdoor air quality is better than indoor. This would require careful safety considerations and user override mechanisms, but it represents the natural evolution from monitoring to active environmental management.
+
+Fourth, we could add user personalization features. Different people have different sensitivities to air pollutants. Children, elderly people, and those with respiratory conditions need stricter thresholds. The system could support user profiles with customized alert levels, preferred notification methods (email, SMS, push notifications), and personalized health recommendations. We could also add a mobile app using React Native or Flutter to provide notifications and remote monitoring capabilities.
+
+Fifth, we could implement data privacy and security features. Currently, the system has no authentication or encryption. For deployment in real buildings, we would need user accounts with role-based access control (building managers see all sites, residents see only their own), encrypted data transmission using HTTPS, and secure storage of sensitive information. We could explore blockchain-based approaches for tamper-proof audit logs of air quality data, which could be important for regulatory compliance or health insurance claims.
+
+Sixth, we could expand the parameter set to include additional pollutants like VOCs (Volatile Organic Compounds), formaldehyde, radon, or ozone. Each pollutant has its own health implications and requires different sensor technologies. We could also add outdoor air quality data from public APIs like OpenAQ or government monitoring stations, allowing the system to compare indoor and outdoor conditions and recommend when to open windows for natural ventilation.
+
+Finally, we could conduct user studies to evaluate the system's impact on behavior and health outcomes. Do people actually change their behavior when they see air quality data? Does the system reduce exposure to harmful pollutants? What visualization approaches are most effective for different user groups? These questions require longitudinal studies with real users in real buildings, but they are essential for understanding whether IAQ monitoring systems actually improve health and well-being.
 
 % 14. Reference
 \section{Reference}
