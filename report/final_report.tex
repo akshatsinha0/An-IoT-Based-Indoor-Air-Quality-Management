@@ -29,6 +29,7 @@
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+\usepackage{eso-pic}
 
 % Convenience macros
 \newcommand{\course}{BCSE401L -- Internet of Things}
@@ -43,6 +44,21 @@
 
 % Cover Page
 \begin{titlepage}
+% Add decorative border
+\AddToShipoutPictureBG*{%
+  \AtPageLowerLeft{%
+    \begin{tikzpicture}[remember picture,overlay]
+      % Outer border
+      \draw[line width=2pt] 
+        ([xshift=0.75cm,yshift=0.75cm]current page.south west) rectangle 
+        ([xshift=-0.75cm,yshift=-0.75cm]current page.north east);
+      % Inner border
+      \draw[line width=0.5pt] 
+        ([xshift=0.95cm,yshift=0.95cm]current page.south west) rectangle 
+        ([xshift=-0.95cm,yshift=-0.95cm]current page.north east);
+    \end{tikzpicture}
+  }%
+}
 \centering
 \vspace*{1cm}
 {\large A\\[6pt] Final Project Report\\[6pt] Submitted}\\[12pt]
