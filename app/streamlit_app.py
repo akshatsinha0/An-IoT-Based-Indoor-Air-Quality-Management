@@ -134,6 +134,18 @@ if not df.empty:
 else:
     st.info("No data yet. Start API then use Seed demo data or Manual Ingest.")
 
+# ingestion/quality status
+if not df.empty:
+    st.subheader("Status")
+    try:
+        age = (pd.Timestamp.utcnow() - df["ts"].iloc[-1]).total_seconds()
+        rate = max(0.0, len(df.tail(60)) / ((df["ts"].iloc[-1] - df["ts"].iloc[-60]).total_seconds()/60.0)) if len(df) > 60 else len(df) / max(1, (df["ts"].iloc[-1] - df["ts"].iloc[0]).total_seconds()/60.0)
+        s1, s2 = st.columns(2)
+        s1.metric("Ingestion delay", f"{age:.0f}s")
+        s2.metric("Throughput", f"{rate:.1f} pts/min")
+    except Exception:
+        pass
+
 st.subheader("Trends")
 if not df.empty:
     # EWMA bands
