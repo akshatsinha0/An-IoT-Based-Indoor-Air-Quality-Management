@@ -140,14 +140,60 @@ if not df.empty:
     for col in ["pm25","co2"]:
         if col in df:
             df[f"{col}_ewma"] = df[col].ewm(span=30, adjust=False).mean()
+    # control simulation toggles (visual only)
+    with st.expander("Simulate actions (visual only)"):
+        a1, a2 = st.columns(2)
+        if a1.toggle("Air purifier active", key="purifier_toggle", value=False):
+            if "purifier_started" not in st.session_state:
+                st.session_state["purifier_started"] = df["ts"].iloc[-1]
+        else:
+            st.session_state.pop("purifier_started", None)
+        if a2.toggle("Exhaust fan active", key="exhaust_toggle", value=False):
+            if "exhaust_started" not in st.session_state:
+                st.session_state["exhaust_started"] = df["ts"].iloc[-1]
+        else:
+            st.session_state.pop("exhaust_started", None)
+
     y_cols = [c for c in ["pm25","co2","temp","rh"] if c in df.columns]
     fig = px.line(df, x="ts", y=y_cols)
     # overlay EWMA lines
     for col in ["pm25","co2"]:
         if f"{col}_ewma" in df:
             fig.add_trace(go.Scatter(x=df["ts"], y=df[f"{col}_ewma"], name=f"{col.upper()} EWMA", line=dict(dash="dot")))
+    # annotate active periods
+    now_ts = df["ts"].iloc[-1]
+    if "purifier_started" in st.session_state:
+        fig.add_vrect(x0=st.session_state["purifier_started"], x1=now_ts, fillcolor="#cce5ff", opacity=0.25, line_width=0, annotation_text="Purifier", annotation_position="top left")
+    if "exhaust_started" in st.session_state:
+        fig.add_vrect(x0=st.session_state["exhaust_started"], x1=now_ts, fillcolor="#ffe6cc", opacity=0.25, line_width=0, annotation_text="Exhaust", annotation_position="top left")
+
     fig.update_layout(margin=dict(l=0,r=0,t=24,b=0))
     st.plotly_chart(fig, use_container_width=True)
+
+    # lightweight analytics: ACH estimate & 30m forecast
+    met1, met2 = st.columns(2)
+    if "co2" in df and df["co2"].notna().any():
+        try:
+            sub = df.tail(180)  # about last 3 hours if 1-min cadence; safe if denser too
+            x = (sub["ts"] - sub["ts"].iloc[0]).dt.total_seconds().values
+            co2 = sub["co2"].astype(float).values
+            baseline = 400.0
+            y = np.log(np.clip(co2 - baseline, 1, None))
+            slope, intercept = np.polyfit(x, y, 1)
+            ach = max(0.0, -slope * 3600.0)
+            met1.metric("Ventilation rate (ACH)", f"{ach:.2f}", help="Estimated from CO₂ decay")
+        except Exception:
+            pass
+    if "pm25" in df and df["pm25"].notna().any():
+        try:
+            sub = df.tail(60)
+            x = (sub["ts"] - sub["ts"].iloc[0]).dt.total_seconds().values
+            y = sub["pm25"].astype(float).values
+            slope, intercept = np.polyfit(x, y, 1)
+            forecast = y[-1] + slope * 1800  # 30 minutes
+            met2.metric("PM2.5 forecast (30m)", f"{forecast:.1f} µg/m³")
+        except Exception:
+            pass
 
 st.subheader("CPCB Exposure (time in zone)")
 win = st.selectbox("Window", ["24h","7d"], index=0)
