@@ -27,6 +27,8 @@
 \setlength{\tabcolsep}{3pt}
 % Ragged-right wrapped column type for tabularx
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
 
 % Convenience macros
 \newcommand{\course}{BCSE401L -- Internet of Things}
@@ -231,8 +233,69 @@ The trade-offs we accepted: Since we use simulated data instead of real sensors,
 
 % 8. System Design & Architecture
 \section{System Design \& Architecture}
-Our software has four parts: a data generator or API fetcher, a FastAPI backend with storage, an analytics layer that computes CPCB PM2.5 sub-index and exposure time, and a Streamlit dashboard for live views and alerts.\\
-\IfFileExists{architecture.png}{\begin{center}\includegraphics[width=0.8\linewidth]{architecture.png}\end{center}}{}
+Our software has four parts: a data generator or API fetcher, a FastAPI backend with storage, an analytics layer that computes CPCB PM2.5 sub-index and exposure time, and a Streamlit dashboard for live views and alerts.
+
+\subsection{Architecture Diagram}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    box/.style={rectangle, draw, fill=blue!10, text width=3.5cm, align=center, minimum height=1cm, rounded corners},
+    databox/.style={rectangle, draw, fill=green!10, text width=3cm, align=center, minimum height=0.8cm},
+    arrow/.style={-Stealth, thick}
+]
+
+% Data Sources Layer
+\node[databox] (dataset) {UCI Air Quality Dataset\\(CSV)};
+\node[databox, right=0.5cm of dataset] (simulator) {Simulator\\(Python)};
+\node[databox, right=0.5cm of simulator] (manual) {Manual Input\\(Web Form)};
+
+% Backend Layer
+\node[box, below=1.5cm of simulator] (api) {FastAPI Backend\\(Python)\\Port 8000};
+\node[databox, right=1cm of api] (db) {SQLite Database\\(iaq.db)};
+
+% Analytics Layer
+\node[box, below=1.2cm of api] (analytics) {Analytics Engine\\CPCB Index Calculator\\Exposure Tracker};
+
+% Presentation Layer
+\node[box, below=1.2cm of analytics] (dashboard) {Streamlit Dashboard\\(Web UI)\\Port 8501};
+
+% User
+\node[box, below=1.2cm of dashboard, fill=orange!10] (user) {End User\\(Browser)};
+
+% Arrows
+\draw[arrow] (dataset) -- (api);
+\draw[arrow] (simulator) -- (api);
+\draw[arrow] (manual) -- (api);
+\draw[arrow, <->] (api) -- (db);
+\draw[arrow] (api) -- (analytics);
+\draw[arrow] (analytics) -- (dashboard);
+\draw[arrow, <->] (dashboard) -- (user);
+
+% Labels
+\node[above=0.1cm of dataset, font=\small\bfseries] {Data Sources};
+\node[left=0.1cm of api, font=\small] {REST API};
+\node[left=0.1cm of dashboard, font=\small] {HTTP};
+
+\end{tikzpicture}
+\caption{System Architecture: Three-tier IoT-based IAQ Monitoring System}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Dataset Selection}
+For realistic data validation and testing, we utilize the \textbf{UCI Air Quality Dataset} (available at UCI Machine Learning Repository), which contains 9,358 hourly averaged responses from an array of metal oxide chemical sensors deployed in an Italian city. The dataset includes:
+\begin{itemize}
+  \item CO (Carbon Monoxide) concentration in mg/m\textsuperscript{3}
+  \item NMHC (Non-Methane Hydrocarbons) in µg/m\textsuperscript{3}
+  \item Benzene (C\textsubscript{6}H\textsubscript{6}) in µg/m\textsuperscript{3}
+  \item NO\textsubscript{x} (Nitrogen Oxides) in ppb
+  \item NO\textsubscript{2} (Nitrogen Dioxide) in µg/m\textsuperscript{3}
+  \item Temperature in °C
+  \item Relative Humidity in \%
+  \item Absolute Humidity in g/m\textsuperscript{3}
+\end{itemize}
+
+While this dataset does not include PM2.5 measurements directly, we use it to validate our system's ability to ingest, process, and visualize real-world time-series air quality data. For PM2.5 simulation, we employ parametric models based on site-specific profiles (Lab, Classroom, Canteen) that generate statistically realistic patterns aligned with CPCB air quality standards. This hybrid approach—combining real sensor data for validation with simulated PM2.5 for CPCB compliance testing—ensures our system can handle both actual sensor inputs and demonstrate India-specific air quality monitoring scenarios.
 
 The system follows a three-tier architecture pattern commonly used in web applications. The first tier is the data layer, which includes both the data generation module and the SQLite database. The data generator creates realistic sensor readings using mathematical models that simulate different indoor environments. Each site type (Lab, Classroom, Canteen) has its own profile with specific baseline values, trend coefficients, and noise parameters. For example, the Canteen profile generates higher PM2.5 values with more variability to simulate cooking activities, while the Lab profile maintains cleaner, more stable readings. The SQLite database stores all readings with timestamps, allowing for historical queries and trend analysis.
 
