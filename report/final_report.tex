@@ -246,7 +246,7 @@ Our software has four parts: a data generator or API fetcher, a FastAPI backend 
 ]
 
 % Data Sources Layer
-\node[databox] (dataset) {UCI Air Quality Dataset\\(CSV)};
+\node[databox] (dataset) {LBNL Indoor IAQ\\Dataset (CSV)};
 \node[databox, right=0.5cm of dataset] (simulator) {Simulator\\(Python)};
 \node[databox, right=0.5cm of simulator] (manual) {Manual Input\\(Web Form)};
 
@@ -283,19 +283,17 @@ Our software has four parts: a data generator or API fetcher, a FastAPI backend 
 \end{figure}
 
 \subsection{Dataset Selection}
-For realistic data validation and testing, we utilize the \textbf{UCI Air Quality Dataset} (available at UCI Machine Learning Repository), which contains 9,358 hourly averaged responses from an array of metal oxide chemical sensors deployed in an Italian city. The dataset includes:
+For realistic data validation and testing, we utilize the \textbf{LBNL Indoor Air Quality Dataset} from Lawrence Berkeley National Laboratory (available at https://iaqdata.lbl.gov/), which contains real-world indoor air quality measurements from residential homes, offices, and educational facilities. This dataset is specifically designed for indoor environmental quality research and includes the exact parameters our system monitors. The dataset includes:
 \begin{itemize}
-  \item CO (Carbon Monoxide) concentration in mg/m\textsuperscript{3}
-  \item NMHC (Non-Methane Hydrocarbons) in µg/m\textsuperscript{3}
-  \item Benzene (C\textsubscript{6}H\textsubscript{6}) in µg/m\textsuperscript{3}
-  \item NO\textsubscript{x} (Nitrogen Oxides) in ppb
-  \item NO\textsubscript{2} (Nitrogen Dioxide) in µg/m\textsuperscript{3}
-  \item Temperature in °C
-  \item Relative Humidity in \%
-  \item Absolute Humidity in g/m\textsuperscript{3}
+  \item CO\textsubscript{2} (Carbon Dioxide) concentration in ppm - indicating ventilation effectiveness
+  \item PM2.5 (Particulate Matter ≤2.5 µm) in µg/m\textsuperscript{3} - critical for respiratory health
+  \item Temperature in °C - affecting thermal comfort
+  \item Relative Humidity in \% - influencing comfort and mold growth
+  \item VOCs (Volatile Organic Compounds) in ppb - from building materials and activities
+  \item Timestamps with hourly or sub-hourly resolution
 \end{itemize}
 
-While this dataset does not include PM2.5 measurements directly, we use it to validate our system's ability to ingest, process, and visualize real-world time-series air quality data. For PM2.5 simulation, we employ parametric models based on site-specific profiles (Lab, Classroom, Canteen) that generate statistically realistic patterns aligned with CPCB air quality standards. This hybrid approach—combining real sensor data for validation with simulated PM2.5 for CPCB compliance testing—ensures our system can handle both actual sensor inputs and demonstrate India-specific air quality monitoring scenarios.
+The LBNL dataset is ideal for our project because it represents actual indoor environments (not outdoor urban air), includes PM2.5 measurements essential for CPCB compliance testing, covers multiple building types matching our site profiles (Lab, Classroom, Canteen), and provides research-grade sensor data with documented calibration procedures. We use this dataset to validate our system's data ingestion pipeline, test CPCB PM2.5 categorization accuracy against real indoor pollution levels, benchmark our exposure time tracking algorithms, and demonstrate multi-site monitoring with authentic indoor air quality patterns. This approach ensures our software-based system can seamlessly transition to real sensor deployments while maintaining compatibility with India's CPCB air quality standards for PM2.5 monitoring.
 
 The system follows a three-tier architecture pattern commonly used in web applications. The first tier is the data layer, which includes both the data generation module and the SQLite database. The data generator creates realistic sensor readings using mathematical models that simulate different indoor environments. Each site type (Lab, Classroom, Canteen) has its own profile with specific baseline values, trend coefficients, and noise parameters. For example, the Canteen profile generates higher PM2.5 values with more variability to simulate cooking activities, while the Lab profile maintains cleaner, more stable readings. The SQLite database stores all readings with timestamps, allowing for historical queries and trend analysis.
 
