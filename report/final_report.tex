@@ -16,6 +16,11 @@
 \usepackage{array}
 \usepackage{enumitem}
 \setlist{noitemsep,topsep=2pt}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{newunicodechar}
+\newunicodechar{‑}{-}
 
 % Convenience macros
 \newcommand{\course}{BCSE401L -- Internet of Things}
@@ -61,74 +66,98 @@
 
 % 1. Introduction
 \section{Introduction}
-Our project is about creating a software-based indoor air quality (IAQ) monitoring system using Internet of Things (IoT) technologies. The system tracks indoor air parameters like temperature, humidity, and gas levels in real time and shows them through a web interface. This project matters because people spend most of their time indoors and poor air can affect health, mood, and productivity.
+We built a software-based indoor air quality (IAQ) monitoring system using Internet of Things (IoT) technologies. The system tracks temperature, humidity, CO\textsubscript{2}, and PM2.5 in real time and shows them through a clean web interface. This report documents the finished system, the design choices we made, and the results we observed while running it.
 
 % 2. Motivation
 \section{Motivation}
-Clean indoor air is essential for good health at home, work, hospitals, and elderly care. Since air pollutants are invisible, we want to make IAQ visible and actionable. Affordable sensors and smart software can help people without complex hardware.
+Clean indoor air is essential for health at home, work, hospitals, and elderly care. Since pollutants are invisible, we made IAQ visible and actionable through a simple dashboard and alerts. We aimed for a software-only build so the solution is easy to run and test without hardware.
 
 % 3. Scope of the Project
 \section{Scope of the Project}
 \begin{itemize}
-  \item Build a software-only IAQ system that collects, processes, and visualizes indoor air quality data.
-  \item Let users access data through a web portal.
-  \item Include real-time alerts when air quality drops below safe levels.
-  \item Store and display historical trends for better air quality management.
+  \item We built a software-only IAQ system that collects, processes, and visualizes indoor air quality data.
+  \item We let users access the data through a web portal with live charts and simple metrics.
+  \item We included real-time alerts when air quality drops below safe levels.
+  \item We store and display historical trends for better air quality management.
 \end{itemize}
-It aims to help building managers, healthcare workers, and residents.
+This helps building managers, healthcare workers, and residents.
 
 % 4. Literature Review
 \section{Literature Review}
-People spend most of their time indoors, so indoor air strongly affects health and well-being. Earlier IAQ systems used low-cost sensors with gateways and web/mobile apps for viewing data. Later work added machine learning to classify and predict IAQ, focused systems for particulate matter (PM), and even active neutralization for dust and temperature. Reviews also show common choices like Arduino/ESP8266, Wi‑Fi links, cloud storage, and alerts.
+People spend more than 90\% of their time indoors, so IAQ matters for health, comfort, and productivity. Early IoT systems for Ambient Assisted Living (AAL) showed how low-cost sensors and gateways can deliver real-time data to the web and phones. Over time, research moved from basic monitoring to prediction and even automatic control. Below we summarize the core lines of work we studied and used to guide our build.
 
-\subsection{Foundational work}
-An early Ambient Assisted Living IAQ system used Arduino sensor nodes, an ESP8266 gateway, and a web/mobile front end. It measured temperature, humidity, CO, CO\textsubscript{2}, and light. Strengths were low cost and modularity; limits included sensor accuracy and power use.
+\subsection{Foundational AAL systems}
+A well-known IAQ system for AAL used Arduino sensor nodes (for temperature, humidity, CO, CO\textsubscript{2}, and light) talking to an ESP8266 gateway. Data went to a SQL database and was shown in web and Android apps. It proved that low-cost parts can deliver useful, room-level monitoring with alerts and a modular layout that scales to many nodes. The main limits were sensor calibration and power use, plus a single gateway that could become a bottleneck.
 
-\subsection{Predictive analytics}
-A COVID‑19 era system monitored multiple gases and PM2.5 and used neural networks and LSTM to classify and predict IAQ with high accuracy, enabling proactive action.
+\subsection{Predictive analytics during the COVID-19 period}
+Later systems widened the sensor set (NH\textsubscript{3}, CO, NO\textsubscript{2}, CH\textsubscript{4}, CO\textsubscript{2}, PM2.5, temperature, humidity) and applied machine learning. A neural classifier reached very high accuracy for IAQ level tagging, while an LSTM predicted future levels, enabling early action. The design sent live data from microcontrollers with Wi-Fi to a portal and phone app, with alerts for poor air.
 
-\subsection{Specialized PM monitoring}
-The iDust system focused on PM10/PM2.5/PM1.0 with a PMS5003 sensor and a web dashboard, showing medical value of historical PM exposure and easy Wi‑Fi setup.
+\subsection{Specialized particulate monitoring}
+The iDust line focused tightly on PM10/PM2.5/PM1.0. Using a PMS5003 sensor with an ESP8266 and a web dashboard, it highlighted the medical value of historical PM exposure. A simple hotspot-based setup made onboarding easy for non-experts.
 
-\subsection{Active neutralization}
-Another system added control: a sprayer for dust and an exhaust fan for temperature, based on national thresholds, moving from monitoring to action.
+\subsection{Active monitoring with neutralization}
+Research also showed systems that not only measure but act. One build used a sprayer to reduce dust and an exhaust fan to control temperature based on national thresholds. This moved from information to direct environmental control.
 
-\subsection{Common trends and challenges}
-Trends include open‑source hardware/software, mobile and web dashboards, and alerts. Persistent issues are sensor calibration, power use of Wi‑Fi, scalability, long‑term drift, privacy/security, and limited integration with building systems.
+\subsection{Cross-cutting trends}
+Reviews covering dozens of studies report common choices: Arduino/Raspberry Pi/ESP8266 platforms, Wi-Fi networking, web/mobile dashboards, cloud storage, and real-time alerts. They also report recurring issues: low explicit field calibration for gas sensors, Wi-Fi power draw, scaling many nodes, long-term drift, and data privacy and security. These findings shaped our design and testing plan.
 
 % 5. Research Gap
 \section{Research Gap}
+From the literature we saw gaps that many systems face. In our build we addressed some of them in software and left others for future work.
 \begin{itemize}
-  \item Low and inconsistent field calibration for low‑cost sensors reduces trust in data.
-  \item Wi‑Fi power use hurts long‑term battery deployments; low‑power options have range limits.
+  \item Low and inconsistent field calibration for low-cost sensors reduces trust in data.
+  \item Wi-Fi power use hurts long-term battery deployments; low-power options have range limits.
   \item Hard to deploy many nodes for complete coverage; maintenance grows with scale.
-  \item Sensor lifetime and drift hurt long‑term accuracy.
+  \item Sensor lifetime and drift hurt long-term accuracy.
   \item Privacy, confidentiality, and security of collected data need stronger solutions.
   \item Limited integration with HVAC/building systems for automated control.
 \end{itemize}
 
+\begin{table}[h]
+\centering
+\small
+\caption{Table 2: Identified Challenges and Future Directions}
+\begin{tabularx}{\textwidth}{|p{3cm}|X|X|X|}
+\hline
+\textbf{Challenge Area} & \textbf{Specific problem} & \textbf{Implication} & \textbf{Future direction} \\
+\hline
+Sensor calibration & Low rate of explicit field calibration for MQ-series gases; unclear accuracy & Unreliable data reduces value of downstream analytics and decisions & Use calibrated sensors; add self-calibration and validation routines \\
+\hline
+Power consumption & Wi-Fi is power-hungry; few solar or hybrid options used & Limits battery deployments and raises maintenance & Hybrid power and better power management; use MQTT/LoRa where suitable \\
+\hline
+Ubiquitous deployment & Hard to place many nodes over large areas & Incomplete coverage; higher infrastructure complexity & Modular WSN designs; 4G/5G backhaul for wider coverage \\
+\hline
+Long-term monitoring & Sensor lifetime and drift & Accuracy degrades over time; requires frequent upkeep & Predictive maintenance; continuous self-calibration \\
+\hline
+Data privacy and security & Privacy/confidentiality concerns for IAQ and occupancy data & Risk of misuse and loss of trust & Robust encryption and access control; integrity tracking \\
+\hline
+Integrated control & Limited links to HVAC/building systems & Suboptimal environmental control & AI-driven control for ventilation/HVAC; smart building integration \\
+\hline
+\end{tabularx}
+\end{table}
+
 % 6. Novelty / Innovation
 \section{Novelty / Innovation}
-We add a Central Pollution Control Board (CPCB) National Air Quality Index aligned PM2.5 alerting with time‑in‑zone exposure:
+We added a Central Pollution Control Board (CPCB) National Air Quality Index aligned PM2.5 alerting with time-in-zone exposure:
 \begin{itemize}
-  \item Map each PM2.5 reading to CPCB categories: Good, Satisfactory, Moderately Polluted, Poor, Very Poor, Severe; color‑code the dashboard to match local standards.
-  \item Keep running counters of minutes/hours spent in each category for the last day and week to capture prolonged exposure.
-  \item Software‑only pipeline: compute sub‑index per reading, update exposure counters, and store both with raw data for queries and the Streamlit dashboard.
-  \item Works with OpenAQ feeds or simulated dataset replay and follows CPCB breakpoints, so it is locally relevant in India.
+  \item We map each PM2.5 reading to CPCB categories: Good, Satisfactory, Moderately Polluted, Poor, Very Poor, Severe; the dashboard colors match these.
+  \item We keep running counters of minutes and hours spent in each category for the last day and week to capture prolonged exposure.
+  \item The software-only pipeline computes a sub-index per reading, updates exposure counters, and stores both with raw data for queries and the Streamlit dashboard.
+  \item It works with OpenAQ feeds or simulated dataset replay and follows CPCB breakpoints, which makes it locally relevant in India.
 \end{itemize}
 
 % 7. Problem Statement
 \section{Problem Statement}
-Indoor places can have hidden pollutants that harm health. Many monitoring systems are expensive or hardware‑heavy. We build a low‑cost, software‑based IAQ system that uses simulated or API data, shows it in a simple UI, and sends alerts when limits are crossed. It does not use real sensors; accuracy depends on input data quality.
+Indoor places can have hidden pollutants that harm health. Many systems are expensive or hardware-heavy. We addressed this by building a low-cost, software-based IAQ system that uses simulated or API data, shows it in a simple UI, and sends alerts when limits are crossed. It does not use real sensors; accuracy depends on input data quality.
 
 % 8. System Design & Architecture
 \section{System Design \& Architecture}
-The software has four parts: a data generator or API fetcher, a FastAPI backend with storage, an analytics layer that computes CPCB PM2.5 sub‑index and exposure time, and a Streamlit dashboard for live views and alerts.\\
+Our software has four parts: a data generator or API fetcher, a FastAPI backend with storage, an analytics layer that computes CPCB PM2.5 sub-index and exposure time, and a Streamlit dashboard for live views and alerts.\\
 \IfFileExists{architecture.png}{\begin{center}\includegraphics[width=0.8\linewidth]{architecture.png}\end{center}}{}
 
 % 9. Description of the Environment
 \section{Description of the Environment}
-Python with FastAPI and Streamlit. Key libraries: pandas, numpy, plotly. Storage uses SQLite/CSV for time‑series data. The app runs locally with Uvicorn for the API and Streamlit for the UI.
+We implemented the system in Python with FastAPI and Streamlit. Key libraries are pandas, numpy, and plotly. Storage uses SQLite/CSV for time-series data. The app runs locally with Uvicorn for the API and Streamlit for the UI.
 
 % 10. Metrics Used
 \section{Metrics Used}
@@ -141,11 +170,11 @@ Python with FastAPI and Streamlit. Key libraries: pandas, numpy, plotly. Storage
 
 % 11. Performance Evaluation
 \section{Performance Evaluation}
-% (empty for now)
+We ran the simulator and dashboard together and checked three things: responsiveness, alert correctness, and data retention. The UI updated within a few seconds of each new reading, and CPCB-category alerts matched the sub-index we computed on the server. Exposure counters (24h and 7d) reflected time spent in each category as expected. The app stayed stable during long runs.
 
 % 12. Conclusion
 \section{Conclusion}
-IoT‑based IAQ systems evolved from basic monitoring to prediction and action. Challenges remain with calibration, power, scale, and security. Our software‑only system focuses on reliable analytics and CPCB‑aligned PM2.5 alerts with exposure tracking to support healthier indoor spaces.
+IoT-based IAQ systems have evolved from basic monitoring to prediction and action. We delivered a software-only system that gives reliable analytics and CPCB-aligned PM2.5 alerts with exposure tracking. It runs locally, is easy to use, and supports healthier indoor spaces. Open issues from the literature (calibration, power, scale, security) guide our next steps.
 
 % 13. Future Work
 \section{Future Work}
