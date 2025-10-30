@@ -25,6 +25,8 @@
 \usepackage{newunicodechar}
 \newunicodechar{‑}{-}
 \setlength{\tabcolsep}{3pt}
+% Ragged-right wrapped column type for tabularx
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
 % Convenience macros
 \newcommand{\course}{BCSE401L -- Internet of Things}
@@ -33,7 +35,7 @@
 \newcommand{\dept}{Department of Computer Science \& Engineering}
 \newcommand{\authors}{ARNAV SINHA -- 22BCE0830\\AKSHAT SINHA -- 22BCE2218}
 \newcommand{\guides}{USHUS\\ELIZEBETH\\ZACHARIAH}
-\newcommand{\reportdate}{8, August 2025}
+\newcommand{\reportdate}{30, October 2025}
 
 \begin{document}
 
@@ -104,6 +106,30 @@ Research also showed systems that not only measure but act. One build used a spr
 
 \subsection{Cross-cutting trends}
 Reviews covering dozens of studies report common choices: Arduino/Raspberry Pi/ESP8266 platforms, Wi-Fi networking, web/mobile dashboards, cloud storage, and real-time alerts. They also report recurring issues: low explicit field calibration for gas sensors, Wi-Fi power draw, scaling many nodes, long-term drift, and data privacy and security. These findings shaped our design and testing plan.
+
+% Comparative table (placed as its own float)
+\begin{table}[htbp]
+\centering
+\scriptsize
+\caption{Comparative Analysis of Core IoT--IAQ Systems}
+\label{tab:comparative_iot_iaq}
+\begin{tabularx}{\textwidth}{Y Y Y Y Y Y Y}
+\toprule
+\textbf{Paper} & \textbf{Main focus} & \textbf{Key IAQ parameters} & \textbf{MCU/processor} & \textbf{Communication} & \textbf{Unique feature/novelty} & \textbf{Calibration mentioned} \\
+\midrule
+An Indoor Monitoring System for Ambient Assisted Living Based on Internet of Things Architecture (Marques \& Pitarma, 2016) & Foundational IoT-based IAQ for AAL with modular, low-cost design. & Temperature, Relative Humidity, CO, CO\textsubscript{2}, Luminosity. & Arduino Mega (sensor node), Wemos D1 Mini ESP8266 (gateway). & XBee (ZigBee) WSN; Wi-Fi at gateway. & Real-time web/mobile access, scalable multi-room coverage. & Implicit via sensor choice; accuracy limits for low-cost sensors. \\
+\addlinespace
+Internet of Things Based Indoor Air Quality Sensing and Predictive Analytic (Mumtaz et~al., 2021) & Predictive analytics/classification for IAQ. & NH\textsubscript{3}, CO, NO\textsubscript{2}, CH\textsubscript{4}, CO\textsubscript{2}, PM2.5, Temp, Humidity. & ATmega328P node, NodeMCU Wi-Fi. & GSM/Wi-Fi. & Neural classifier and LSTM forecasting. & Yes; long-term calibration challenges. \\
+\addlinespace
+A System for Real-Time Particle Monitoring in Buildings (Marques et~al., 2018; ``iDust'') & Specialized PM monitoring. & PM10, PM2.5, PM1.0. & WEMOS D1 mini (ESP8266). & Wi-Fi. & Easy hotspot onboarding; historical exposure tracking. & Implicit (PMS5003 compensation). \\
+\addlinespace
+The Monitoring System of Indoor Air Quality Based on IoT (Pangestu et~al., 2020) & Monitoring with active neutralization/control. & Dust, Temperature. & Arduino Mega 2560 + Ethernet Shield. & Ethernet. & Automatic sprayer and exhaust fan control + app. & Yes; sensor error validation. \\
+\addlinespace
+Systematic Review (Saini et~al., 2020) & Trends, technologies, challenges (2015--2020). & Typical: Temp/Humidity, CO\textsubscript{2}, CO, PM10/PM2.5, VOCs. & Typical: Arduino, Raspberry Pi, ESP8266. & Typical: Wi-Fi, Bluetooth, ZigBee; MQTT growing. & Open-source, low-cost, easy install; alerts/cloud common. & Yes; calibration is critical. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\FloatBarrier
 
 % 5. Research Gap
 \section{Research Gap}
