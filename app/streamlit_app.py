@@ -104,7 +104,7 @@ site = top_col4.selectbox("Site", sites, index=0)
 with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
     c1,c2,c3,c4 = st.columns([2,1,1,1])
     hours = c1.slider("Seed hours", 6, 72, 24, step=6)
-    seed_clicked = c2.button("Seed demo data", disabled=not api_ok)
+    seed_clicked = c2.button("Seed demo data from our dataset", disabled=not api_ok)
     seed_all_clicked = c3.button("Seed all sites", disabled=not api_ok)
     reset_clicked = c4.button("Reset data", disabled=not api_ok)
     if seed_clicked and api_ok:

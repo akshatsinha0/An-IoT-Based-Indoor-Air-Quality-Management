@@ -217,19 +217,59 @@ def seed(payload: SeedIn):
     period_seconds = payload.period_seconds
     now = datetime.now(timezone.utc)
     n = int(hours * 3600 / period_seconds)
+    
+    # Site-specific profiles for realistic variation
+    site_profiles = {
+        "Lab": {
+            "pm25_base": 0, "pm25_trend": 0.3, "pm25_noise": 15,
+            "co2_base": 600, "co2_trend": 0.5, "co2_noise": 150,
+            "temp_base": 24, "temp_trend": 0.1, "temp_noise": 2,
+            "rh_base": 45, "rh_trend": 0.05, "rh_noise": 8
+        },
+        "Classroom": {
+            "pm25_base": 20, "pm25_trend": 0.8, "pm25_noise": 25,
+            "co2_base": 800, "co2_trend": 1.2, "co2_noise": 200,
+            "temp_base": 26, "temp_trend": 0.15, "temp_noise": 3,
+            "rh_base": 55, "rh_trend": 0.08, "rh_noise": 10
+        },
+        "Canteen": {
+            "pm25_base": 40, "pm25_trend": 1.5, "pm25_noise": 35,
+            "co2_base": 900, "co2_trend": 1.8, "co2_noise": 250,
+            "temp_base": 28, "temp_trend": 0.2, "temp_noise": 4,
+            "rh_base": 60, "rh_trend": 0.1, "rh_noise": 12
+        }
+    }
+    
+    profile = site_profiles.get(site, site_profiles["Lab"])
+    
     # generate backwards in time so ts unique and sorted
     for i in range(n):
         ts = now - timedelta(seconds=(n - i) * period_seconds)
-        # cycle through CPCB bands roughly
-        band = (i // max(1, n // 6)) % 6
-        ranges = [
-            (5, 25), (35, 55), (65, 85), (95, 115), (140, 220), (260, 320)
-        ]
-        lo, hi = ranges[band]
-        pm25 = random.uniform(lo, hi)
-        co2 = random.uniform(450, 1200)
-        temp = random.uniform(22, 33)
-        rh = random.uniform(35, 70)
+        t_hours = i * period_seconds / 3600.0
+        
+        # Sinusoidal daily pattern + trend + noise for each parameter
+        pm25 = (profile["pm25_base"] + 
+                profile["pm25_trend"] * t_hours + 
+                30 * abs(random.gauss(0, 1)) * (1 + 0.5 * random.random()) +
+                profile["pm25_noise"] * random.gauss(0, 1))
+        pm25 = max(5, min(350, pm25))  # clamp to realistic range
+        
+        co2 = (profile["co2_base"] + 
+               profile["co2_trend"] * t_hours +
+               100 * abs(random.gauss(0, 0.5)) +
+               profile["co2_noise"] * random.gauss(0, 1))
+        co2 = max(400, min(2000, co2))
+        
+        temp = (profile["temp_base"] + 
+                3 * random.random() * (1 + 0.3 * random.random()) +
+                profile["temp_noise"] * random.gauss(0, 1))
+        temp = max(18, min(35, temp))
+        
+        rh = (profile["rh_base"] + 
+              profile["rh_trend"] * t_hours +
+              profile["rh_noise"] * random.gauss(0, 1))
+        rh = max(20, min(80, rh))
+        
         insert_reading(ReadingIn(ts=ts, pm25=pm25, co2=co2, temp=temp, rh=rh, site=site, source="seed"))
     return {"seeded": n, "site": site, "period_seconds": period_seconds}
 
