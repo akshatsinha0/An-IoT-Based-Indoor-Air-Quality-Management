@@ -94,6 +94,11 @@ class ExposureOut(BaseModel):
     very_poor: int
     severe: int
 
+class SeedIn(BaseModel):
+    hours: int = 24
+    site: str = "Lab"
+    period_seconds: int = 60
+
 app = FastAPI(title="IAQ Backend", version="0.2.0")
 
 @app.get("/")
@@ -206,7 +211,10 @@ def stats(window: str = "24h", site: Optional[str] = None) -> Dict:
     return out
 
 @app.post("/seed")
-def seed(hours: int = 24, site: str = "Lab", period_seconds: int = 60):
+def seed(payload: SeedIn):
+    hours = payload.hours
+    site = payload.site
+    period_seconds = payload.period_seconds
     now = datetime.now(timezone.utc)
     n = int(hours * 3600 / period_seconds)
     # generate backwards in time so ts unique and sorted
