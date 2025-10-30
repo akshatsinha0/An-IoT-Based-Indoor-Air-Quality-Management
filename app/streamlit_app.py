@@ -50,9 +50,16 @@ def api_post(path: str, json=None):
 @st.cache_data(ttl=5)
 def get_sites():
     try:
-        return api_get("/sites")
+        sites_from_db = api_get("/sites")
+        # Always show all possible sites, even if no data yet
+        all_sites = ["Lab", "Classroom", "Canteen"]
+        # Merge: prioritize DB sites, then add missing defaults
+        for s in all_sites:
+            if s not in sites_from_db:
+                sites_from_db.append(s)
+        return sites_from_db
     except Exception:
-        return ["Lab"]
+        return ["Lab", "Classroom", "Canteen"]
 
 @st.cache_data(ttl=5)
 def get_readings(limit=5000, site=None, window=None):
@@ -95,21 +102,32 @@ site = top_col4.selectbox("Site", sites, index=0)
 
 # seeding / reset controls
 with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
-    c1,c2,c3 = st.columns([2,1,1])
+    c1,c2,c3,c4 = st.columns([2,1,1,1])
     hours = c1.slider("Seed hours", 6, 72, 24, step=6)
     seed_clicked = c2.button("Seed demo data", disabled=not api_ok)
-    reset_clicked = c3.button("Reset data", disabled=not api_ok)
+    seed_all_clicked = c3.button("Seed all sites", disabled=not api_ok)
+    reset_clicked = c4.button("Reset data", disabled=not api_ok)
     if seed_clicked and api_ok:
         try:
             res = api_post("/seed", {"hours": hours, "site": site, "period_seconds": 60})
             st.success(f"Seeded {res.get('seeded', 0)} points for {res.get('site', site)}")
             get_readings.clear(); get_exposure.clear(); get_sites.clear()
+            st.rerun()
         except Exception as e:
-            st.error("Seeding failed")
+            st.error(f"Seeding failed: {e}")
+    if seed_all_clicked and api_ok:
+        try:
+            for s in ["Lab", "Classroom", "Canteen"]:
+                api_post("/seed", {"hours": hours, "site": s, "period_seconds": 60})
+            st.success(f"Seeded {hours}h for all sites")
+            get_readings.clear(); get_exposure.clear(); get_sites.clear()
+            st.rerun()
+        except Exception as e:
+            st.error(f"Seeding failed: {e}")
     if reset_clicked and api_ok:
         try:
             api_post("/reset", {"site": site})
-            st.success("Cleared")
+            st.success(f"Cleared {site}")
             get_readings.clear(); get_exposure.clear()
         except Exception:
             st.error("Reset failed")
