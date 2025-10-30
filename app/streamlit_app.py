@@ -97,20 +97,24 @@ site = top_col4.selectbox("Site", sites, index=0)
 with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
     c1,c2,c3 = st.columns([2,1,1])
     hours = c1.slider("Seed hours", 6, 72, 24, step=6)
-    if c2.button("Seed demo data") and api_ok:
+    seed_clicked = c2.button("Seed demo data", disabled=not api_ok)
+    reset_clicked = c3.button("Reset data", disabled=not api_ok)
+    if seed_clicked and api_ok:
         try:
-            api_post("/seed", {"hours": hours, "site": site, "period_seconds": 60})
-            st.success("Seeded")
+            res = api_post("/seed", {"hours": hours, "site": site, "period_seconds": 60})
+            st.success(f"Seeded {res.get('seeded', 0)} points for {res.get('site', site)}")
             get_readings.clear(); get_exposure.clear(); get_sites.clear()
         except Exception as e:
             st.error("Seeding failed")
-    if c3.button("Reset data") and api_ok:
+    if reset_clicked and api_ok:
         try:
             api_post("/reset", {"site": site})
             st.success("Cleared")
             get_readings.clear(); get_exposure.clear()
         except Exception:
             st.error("Reset failed")
+    if not api_ok:
+        st.caption("Backend API is offline — start it: uvicorn backend.main:app --reload --port 8000")
 
 colA, colB, colC, colD, colE = st.columns(5)
 
