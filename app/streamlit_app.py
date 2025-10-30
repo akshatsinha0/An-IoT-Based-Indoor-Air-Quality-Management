@@ -5,6 +5,7 @@ import plotly.express as px
 import streamlit as st
 from datetime import datetime
 from pathlib import Path
+import os
 
 st.set_page_config(page_title="IAQ Dashboard", layout="wide")
 
@@ -16,7 +17,11 @@ try:
 except FileNotFoundError:
     st.markdown("", unsafe_allow_html=True)
 
-API = st.secrets.get("api", "http://127.0.0.1:8000").rstrip("/")
+# Backend URL: prefer Streamlit secrets or env var, else fallback to localhost
+try:
+    API = st.secrets["api"].rstrip("/")  # requires secrets.toml if present
+except Exception:
+    API = os.environ.get("IAQ_API", "http://127.0.0.1:8000").rstrip("/")
 
 st.title("An IoT-Based Indoor Air Quality Management")
 
