@@ -1,0 +1,19 @@
+# UI reset: no border radius, no hover effects
+<style>
+:root {
+  --radius: 0 !important;
+}
+/* Buttons */
+div.stButton > button { border-radius:0 !important; transition:none !important; }
+div.stButton > button:hover{ filter:none !important; transform:none !important; }
+/* Inputs */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stSelectbox > div > div,
+.stSlider > div,
+.stDateInput > div > div > input { border-radius:0 !important; }
+/* Containers */
+.block-container, .stApp, .stTabs [data-baseweb="tab"]{ border-radius:0 !important; }
+/* Charts hover off (basic) */
+.js-plotly-plot .hoverlayer{ display:none !important; }
+</style>
