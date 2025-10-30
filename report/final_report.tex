@@ -11,7 +11,8 @@
 \titleformat{\section}{\bfseries\fontsize{14pt}{16pt}\selectfont}{\thesection.}{0.5em}{}
 \titleformat{\subsection}{\bfseries\fontsize{13pt}{15pt}\selectfont}{\thesubsection}{0.5em}{}
 \usepackage{hyperref}
-\hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue}
+\usepackage{xurl}
+\hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue,breaklinks=true}
 \usepackage{graphicx}
 \usepackage{array}
 \usepackage{enumitem}
@@ -19,8 +20,11 @@
 \usepackage{microtype}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{float}
+\usepackage{placeins}
 \usepackage{newunicodechar}
 \newunicodechar{‑}{-}
+\setlength{\tabcolsep}{3pt}
 
 % Convenience macros
 \newcommand{\course}{BCSE401L -- Internet of Things}
@@ -116,7 +120,7 @@ From the literature we saw gaps that many systems face. In our build we addresse
 \begin{table}[h]
 \centering
 \small
-\caption{Table 2: Identified Challenges and Future Directions}
+\caption{Identified Challenges and Future Directions}
 \begin{tabularx}{\textwidth}{|p{3cm}|X|X|X|}
 \hline
 \textbf{Challenge Area} & \textbf{Specific problem} & \textbf{Implication} & \textbf{Future direction} \\
@@ -135,6 +139,7 @@ Integrated control & Limited links to HVAC/building systems & Suboptimal environ
 \hline
 \end{tabularx}
 \end{table}
+\FloatBarrier
 
 % 6. Novelty / Innovation
 \section{Novelty / Innovation}
