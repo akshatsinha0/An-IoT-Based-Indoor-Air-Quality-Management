@@ -246,8 +246,8 @@ Our software has four parts: a data generator or API fetcher, a FastAPI backend 
 ]
 
 % Data Sources Layer
-\node[databox] (dataset) {Sample Indoor IAQ\\Data (CSV)};
-\node[databox, right=0.5cm of dataset] (simulator) {Parametric\\Simulator};
+\node[databox] (dataset) {UCI Air Quality\\Dataset (CSV)};
+\node[databox, right=0.5cm of dataset] (simulator) {PM2.5 Simulator\\(Python)};
 \node[databox, right=0.5cm of simulator] (manual) {Manual Input\\(Web Form)};
 
 % Backend Layer
@@ -282,22 +282,34 @@ Our software has four parts: a data generator or API fetcher, a FastAPI backend 
 \label{fig:architecture}
 \end{figure}
 
-\subsection{Data Sources and Simulation Approach}
-Our system employs a hybrid data approach combining parametric simulation with sample indoor air quality data. Since our project focuses on software architecture and CPCB compliance algorithms rather than hardware deployment, we generate realistic indoor air quality patterns using site-specific environmental models validated against published research.
+\subsection{Dataset Selection and Data Sources}
+Our system employs a hybrid data approach combining real-world air quality measurements with parametric simulation for indoor-specific parameters.
 
-\textbf{Parametric Simulation Model:} We developed three distinct site profiles (Lab, Classroom, Canteen) based on indoor air quality characteristics documented in peer-reviewed literature~\cite{marques2016,mumtaz2021,saini2020}. Each profile incorporates:
+\textbf{UCI Air Quality Dataset:} We utilize the UCI Machine Learning Repository Air Quality Dataset~\cite{uci2016}, which contains 9,358 hourly averaged responses from an array of five metal oxide chemical sensors embedded in an Air Quality Chemical Multisensor Device, deployed on the field in an Italian city from March 2004 to February 2005. The dataset (\texttt{AirQualityUCI.csv}) includes:
 \begin{itemize}
-  \item \textbf{Baseline concentrations:} Lab (PM2.5: 5--25 µg/m\textsuperscript{3}, CO\textsubscript{2}: 400--800 ppm), Classroom (PM2.5: 20--60 µg/m\textsuperscript{3}, CO\textsubscript{2}: 600--1200 ppm), Canteen (PM2.5: 40--150 µg/m\textsuperscript{3}, CO\textsubscript{2}: 800--1500 ppm)
-  \item \textbf{Temporal patterns:} Diurnal cycles reflecting occupancy, cooking activities, and ventilation schedules
-  \item \textbf{Stochastic variation:} Gaussian noise models simulating sensor measurement variability
-  \item \textbf{Environmental coupling:} Temperature (18--35°C) and humidity (20--80\% RH) correlations
+  \item \textbf{CO (Carbon Monoxide):} True hourly averaged concentration in mg/m\textsuperscript{3} (reference analyzer)
+  \item \textbf{NMHC (Non-Methane Hydrocarbons):} True hourly averaged concentration in µg/m\textsuperscript{3}
+  \item \textbf{C\textsubscript{6}H\textsubscript{6} (Benzene):} True hourly averaged concentration in µg/m\textsuperscript{3}
+  \item \textbf{NO\textsubscript{x} (Nitrogen Oxides):} True hourly averaged concentration in ppb
+  \item \textbf{NO\textsubscript{2} (Nitrogen Dioxide):} True hourly averaged concentration in µg/m\textsuperscript{3}
+  \item \textbf{Temperature (T):} In °C
+  \item \textbf{Relative Humidity (RH):} In \%
+  \item \textbf{Absolute Humidity (AH):} In g/m\textsuperscript{3}
+  \item \textbf{Sensor responses:} PT08.S1 (CO), PT08.S2 (NMHC), PT08.S3 (NOx), PT08.S4 (NO2), PT08.S5 (O3)
 \end{itemize}
 
-\textbf{Sample Indoor Data:} We include a curated sample dataset (\texttt{sample\_indoor\_iaq.csv}) containing representative indoor air quality measurements for four site types (Office, Laboratory, Canteen, Classroom) with hourly resolution. This dataset demonstrates the system's ability to ingest external CSV data and serves as a validation reference for our CPCB categorization algorithms.
+This dataset provides real-world time-series air quality data with temperature and humidity measurements that our system can directly ingest and process. We use the temperature and humidity values directly, and leverage the CO and NO\textsubscript{x} measurements as proxy indicators for indoor air quality patterns.
 
-\textbf{CPCB Compliance:} All generated PM2.5 values are mapped to CPCB National Air Quality Index categories using official breakpoints: Good (0--30), Satisfactory (31--60), Moderately Polluted (61--90), Poor (91--120), Very Poor (121--250), Severe (251--350 µg/m\textsuperscript{3}). This ensures our system accurately reflects India-specific air quality standards and health advisories.
+\textbf{Parametric Simulation for Indoor PM2.5:} Since the UCI dataset does not include PM2.5 measurements (critical for CPCB compliance), we developed site-specific simulation models for three indoor environments (Lab, Classroom, Canteen) based on characteristics documented in peer-reviewed literature~\cite{marques2016,mumtaz2021,saini2020}:
+\begin{itemize}
+  \item \textbf{Lab:} PM2.5: 5--25 µg/m\textsuperscript{3}, CO\textsubscript{2}: 400--800 ppm (controlled environment)
+  \item \textbf{Classroom:} PM2.5: 20--60 µg/m\textsuperscript{3}, CO\textsubscript{2}: 600--1200 ppm (occupancy-driven)
+  \item \textbf{Canteen:} PM2.5: 40--150 µg/m\textsuperscript{3}, CO\textsubscript{2}: 800--1500 ppm (cooking activities)
+\end{itemize}
 
-This simulation-based approach enables comprehensive testing of our monitoring system's data pipeline, alert generation, exposure tracking, and visualization capabilities without requiring physical sensor hardware, making the project accessible for educational and demonstration purposes while maintaining technical rigor.
+\textbf{CPCB Compliance:} All PM2.5 values are mapped to CPCB National Air Quality Index categories using official breakpoints: Good (0--30), Satisfactory (31--60), Moderately Polluted (61--90), Poor (91--120), Very Poor (121--250), Severe (251--350 µg/m\textsuperscript{3}), ensuring compatibility with India-specific air quality standards.
+
+This hybrid approach—combining real sensor data from UCI with simulated indoor PM2.5 patterns—enables comprehensive testing of our system's data ingestion, CPCB categorization, exposure tracking, and visualization capabilities while demonstrating adaptability to both real-world datasets and indoor-specific monitoring scenarios.
 
 The system follows a three-tier architecture pattern commonly used in web applications. The first tier is the data layer, which includes both the data generation module and the SQLite database. The data generator creates realistic sensor readings using mathematical models that simulate different indoor environments. Each site type (Lab, Classroom, Canteen) has its own profile with specific baseline values, trend coefficients, and noise parameters. For example, the Canteen profile generates higher PM2.5 values with more variability to simulate cooking activities, while the Lab profile maintains cleaner, more stable readings. The SQLite database stores all readings with timestamps, allowing for historical queries and trend analysis.
 
@@ -399,6 +411,9 @@ Pangestu, A., Yusro, M., Djatmiko, W., \& Jaenul, A. (2020). The monitoring syst
 
 \bibitem{marques2018} 
 Marques, G., Ferreira, C. R., \& Pitarma, R. (2018). A system based on the Internet of Things for real-time particle monitoring in buildings. \emph{International Journal of Environmental Research and Public Health}, 15(4), 821. https://doi.org/10.3390/ijerph15040821
+
+\bibitem{uci2016}
+De Vito, S., Massera, E., Piga, M., Martinotto, L., \& Di Francia, G. (2008). Air Quality Dataset. UCI Machine Learning Repository. https://archive.ics.uci.edu/ml/datasets/Air+Quality
 \end{thebibliography}
 
 % 15. Code
