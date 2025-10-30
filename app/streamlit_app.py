@@ -4,12 +4,17 @@ import numpy as np
 import plotly.express as px
 import streamlit as st
 from datetime import datetime
+from pathlib import Path
 
 st.set_page_config(page_title="IAQ Dashboard", layout="wide")
 
-# styles
-with open("app/styles.html", "r", encoding="utf-8") as f:
-    st.markdown(f.read(), unsafe_allow_html=True)
+# styles (resolve relative to this file so it works from any CWD)
+_style_path = Path(__file__).resolve().parent / "styles.html"
+try:
+    with open(_style_path, "r", encoding="utf-8") as f:
+        st.markdown(f.read(), unsafe_allow_html=True)
+except FileNotFoundError:
+    st.markdown("", unsafe_allow_html=True)
 
 API = st.secrets.get("api", "http://127.0.0.1:8000").rstrip("/")
 
