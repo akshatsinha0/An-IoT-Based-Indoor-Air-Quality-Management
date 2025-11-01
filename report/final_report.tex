@@ -30,6 +30,8 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
 \usepackage{eso-pic}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 % Convenience macros
 \newcommand{\course}{BCSE401L -- Internet of Things}
@@ -251,6 +253,62 @@ We added a Central Pollution Control Board (CPCB) National Air Quality Index ali
   \item The software-only pipeline computes a sub-index per reading, updates exposure counters, and stores both with raw data for queries and the Streamlit dashboard.
   \item It works with OpenAQ feeds or simulated dataset replay and follows CPCB breakpoints, which makes it locally relevant in India.
 \end{itemize}
+
+\subsection{CPCB PM2.5 Sub-Index Calculation Algorithm}
+The core innovation lies in our implementation of the CPCB National Air Quality Index calculation for PM2.5, which uses piecewise linear interpolation across defined breakpoints. The mathematical formulation is:
+
+\begin{equation}
+I_{PM2.5} = \frac{I_{hi} - I_{lo}}{BP_{hi} - BP_{lo}} \times (C_{PM2.5} - BP_{lo}) + I_{lo}
+\end{equation}
+
+where $I_{PM2.5}$ is the PM2.5 sub-index, $C_{PM2.5}$ is the measured PM2.5 concentration (µg/m\textsuperscript{3}), $BP_{lo}$ and $BP_{hi}$ are the breakpoint concentrations, and $I_{lo}$ and $I_{hi}$ are the corresponding index values.
+
+\begin{algorithm}[H]
+\caption{CPCB PM2.5 Sub-Index and Exposure Tracking}
+\begin{algorithmic}[1]
+\Require PM2.5 concentration $C$, timestamp $t$, site identifier $s$
+\Ensure Sub-index $I$, category $cat$, exposure update
+
+\State \textbf{Define} CPCB breakpoints:
+\State $BP \gets [(0,30,0,50,\text{``Good''}), (31,60,51,100,\text{``Satisfactory''}),$ 
+\State \hspace{2.5em} $(61,90,101,200,\text{``Moderate''}), (91,120,201,300,\text{``Poor''}),$ 
+\State \hspace{2.5em} $(121,250,301,400,\text{``Very Poor''}), (251,350,401,500,\text{``Severe''})]$
+
+\State \textbf{Function} \textsc{CalculateSubIndex}$(C)$:
+\For{each $(BP_{lo}, BP_{hi}, I_{lo}, I_{hi}, cat)$ in $BP$}
+    \If{$BP_{lo} \leq C \leq BP_{hi}$}
+        \State $I \gets \left\lfloor \frac{I_{hi} - I_{lo}}{BP_{hi} - BP_{lo}} \times (C - BP_{lo}) + I_{lo} \right\rceil$
+        \State \Return $(I, cat)$
+    \EndIf
+\EndFor
+\State \textit{// Handle values beyond scale}
+\State $I \gets \max(I_{hi}, \text{computed value})$
+\State \Return $(I, \text{``Severe''})$
+
+\State
+\State \textbf{Function} \textsc{UpdateExposure}$(cat, t, s, window)$:
+\State $readings \gets$ \textsc{GetReadings}$(s, t - window, t)$
+\State Sort $readings$ by timestamp
+\For{$i \gets 1$ to $|readings|$}
+    \State $\Delta t \gets readings[i].timestamp - readings[i-1].timestamp$
+    \State $exposure[readings[i].category] \gets exposure[readings[i].category] + \Delta t$
+\EndFor
+\State \Return $exposure$ \textit{// minutes in each category}
+
+\State
+\State \textbf{Main Processing:}
+\State $(I, cat) \gets$ \textsc{CalculateSubIndex}$(C)$
+\State \textsc{StoreReading}$(t, C, I, cat, s)$
+\If{$cat \in \{\text{``Poor''}, \text{``Very Poor''}, \text{``Severe''}\}$}
+    \State $severity \gets$ ($cat = \text{``Poor''}$) ? ``warning'' : ``critical''
+    \State \textsc{GenerateAlert}$(t, s, cat, severity, C)$
+\EndIf
+\State $exposure_{24h} \gets$ \textsc{UpdateExposure}$(cat, t, s, 24\text{ hours})$
+\State $exposure_{7d} \gets$ \textsc{UpdateExposure}$(cat, t, s, 7\text{ days})$
+\end{algorithmic}
+\end{algorithm}
+
+This algorithm ensures real-time CPCB compliance, automatic alert generation for hazardous conditions, and cumulative exposure tracking across multiple time windows, providing a comprehensive view of indoor air quality that goes beyond instantaneous measurements.
 
 % 7. Problem Statement
 \section{Problem Statement}
