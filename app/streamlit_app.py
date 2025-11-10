@@ -323,8 +323,17 @@ if not df.empty:
             # Scatter: PM2.5 vs CO2
             fig_scatter1 = px.scatter(df, x='co2', y='pm25', color='pm25_category',
                                      color_discrete_map=CPCB_COLORS,
-                                     title="PM2.5 vs CO₂ Correlation",
-                                     trendline="ols")
+                                     title="PM2.5 vs CO₂ Correlation")
+            # Add manual trendline
+            try:
+                z = np.polyfit(df['co2'].astype(float), df['pm25'].astype(float), 1)
+                p = np.poly1d(z)
+                x_trend = np.linspace(df['co2'].min(), df['co2'].max(), 100)
+                fig_scatter1.add_trace(go.Scatter(x=x_trend, y=p(x_trend), 
+                                                  mode='lines', name='Trend',
+                                                  line=dict(color='black', dash='dash')))
+            except:
+                pass
             st.plotly_chart(fig_scatter1, use_container_width=True)
         
         with corr_col2:
