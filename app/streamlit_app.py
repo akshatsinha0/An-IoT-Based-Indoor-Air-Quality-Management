@@ -235,41 +235,177 @@ if not df.empty:
     except Exception:
         pass
 
-st.subheader("Trends")
+st.subheader("Trends & Analytics")
 if not df.empty:
     # EWMA bands
     for col in ["pm25","co2"]:
         if col in df:
             df[f"{col}_ewma"] = df[col].ewm(span=30, adjust=False).mean()
-    # control simulation toggles (visual only)
-    with st.expander("Simulate actions (visual only)"):
-        a1, a2 = st.columns(2)
-        if a1.toggle("Air purifier active", key="purifier_toggle", value=False):
-            if "purifier_started" not in st.session_state:
-                st.session_state["purifier_started"] = df["ts"].iloc[-1]
-        else:
-            st.session_state.pop("purifier_started", None)
-        if a2.toggle("Exhaust fan active", key="exhaust_toggle", value=False):
-            if "exhaust_started" not in st.session_state:
-                st.session_state["exhaust_started"] = df["ts"].iloc[-1]
-        else:
-            st.session_state.pop("exhaust_started", None)
+    
+    # Tabs for different visualizations
+    tab1, tab2, tab3, tab4 = st.tabs(["📈 Time Series", "📊 Distributions", "🎯 Correlations", "⚡ Real-time"])
+    
+    with tab1:
+        # control simulation toggles (visual only)
+        with st.expander("Simulate actions (visual only)"):
+            a1, a2 = st.columns(2)
+            if a1.toggle("Air purifier active", key="purifier_toggle", value=False):
+                if "purifier_started" not in st.session_state:
+                    st.session_state["purifier_started"] = df["ts"].iloc[-1]
+            else:
+                st.session_state.pop("purifier_started", None)
+            if a2.toggle("Exhaust fan active", key="exhaust_toggle", value=False):
+                if "exhaust_started" not in st.session_state:
+                    st.session_state["exhaust_started"] = df["ts"].iloc[-1]
+            else:
+                st.session_state.pop("exhaust_started", None)
 
-    y_cols = [c for c in ["pm25","co2","temp","rh"] if c in df.columns]
-    fig = px.line(df, x="ts", y=y_cols)
-    # overlay EWMA lines
-    for col in ["pm25","co2"]:
-        if f"{col}_ewma" in df:
-            fig.add_trace(go.Scatter(x=df["ts"], y=df[f"{col}_ewma"], name=f"{col.upper()} EWMA", line=dict(dash="dot")))
-    # annotate active periods
-    now_ts = df["ts"].iloc[-1]
-    if "purifier_started" in st.session_state:
-        fig.add_vrect(x0=st.session_state["purifier_started"], x1=now_ts, fillcolor="#cce5ff", opacity=0.25, line_width=0, annotation_text="Purifier", annotation_position="top left")
-    if "exhaust_started" in st.session_state:
-        fig.add_vrect(x0=st.session_state["exhaust_started"], x1=now_ts, fillcolor="#ffe6cc", opacity=0.25, line_width=0, annotation_text="Exhaust", annotation_position="top left")
+        y_cols = [c for c in ["pm25","co2","temp","rh"] if c in df.columns]
+        fig = px.line(df, x="ts", y=y_cols, title=f"Air Quality Trends - {site}")
+        # overlay EWMA lines
+        for col in ["pm25","co2"]:
+            if f"{col}_ewma" in df:
+                fig.add_trace(go.Scatter(x=df["ts"], y=df[f"{col}_ewma"], name=f"{col.upper()} EWMA", line=dict(dash="dot", width=2)))
+        # annotate active periods
+        now_ts = df["ts"].iloc[-1]
+        if "purifier_started" in st.session_state:
+            fig.add_vrect(x0=st.session_state["purifier_started"], x1=now_ts, fillcolor="#cce5ff", opacity=0.25, line_width=0, annotation_text="Purifier", annotation_position="top left")
+        if "exhaust_started" in st.session_state:
+            fig.add_vrect(x0=st.session_state["exhaust_started"], x1=now_ts, fillcolor="#ffe6cc", opacity=0.25, line_width=0, annotation_text="Exhaust", annotation_position="top left")
 
-    fig.update_layout(margin=dict(l=0,r=0,t=24,b=0))
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(margin=dict(l=0,r=0,t=40,b=0), hovermode='x unified')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab2:
+        # Distribution charts
+        dist_col1, dist_col2 = st.columns(2)
+        
+        with dist_col1:
+            # PM2.5 histogram with CPCB zones
+            fig_pm25_hist = go.Figure()
+            fig_pm25_hist.add_trace(go.Histogram(x=df['pm25'], nbinsx=30, name='PM2.5 Distribution'))
+            
+            # Add CPCB threshold lines
+            cpcb_thresholds = [(30, 'Good'), (60, 'Satisfactory'), (90, 'Moderate'), (120, 'Poor'), (250, 'Very Poor')]
+            for threshold, label in cpcb_thresholds:
+                fig_pm25_hist.add_vline(x=threshold, line_dash="dash", line_color="red", 
+                                        annotation_text=label, annotation_position="top")
+            
+            fig_pm25_hist.update_layout(title="PM2.5 Distribution with CPCB Thresholds", 
+                                        xaxis_title="PM2.5 (µg/m³)", yaxis_title="Frequency")
+            st.plotly_chart(fig_pm25_hist, use_container_width=True)
+        
+        with dist_col2:
+            # CO2 histogram
+            fig_co2_hist = go.Figure()
+            fig_co2_hist.add_trace(go.Histogram(x=df['co2'], nbinsx=30, name='CO₂ Distribution'))
+            fig_co2_hist.add_vline(x=1000, line_dash="dash", line_color="orange", 
+                                   annotation_text="WHO Limit", annotation_position="top")
+            fig_co2_hist.update_layout(title="CO₂ Distribution", 
+                                       xaxis_title="CO₂ (ppm)", yaxis_title="Frequency")
+            st.plotly_chart(fig_co2_hist, use_container_width=True)
+        
+        # Box plots
+        box_col1, box_col2 = st.columns(2)
+        with box_col1:
+            fig_box_pm25 = px.box(df, y='pm25', title="PM2.5 Box Plot", points="outliers")
+            st.plotly_chart(fig_box_pm25, use_container_width=True)
+        
+        with box_col2:
+            fig_box_co2 = px.box(df, y='co2', title="CO₂ Box Plot", points="outliers")
+            st.plotly_chart(fig_box_co2, use_container_width=True)
+    
+    with tab3:
+        # Correlation analysis
+        corr_col1, corr_col2 = st.columns(2)
+        
+        with corr_col1:
+            # Scatter: PM2.5 vs CO2
+            fig_scatter1 = px.scatter(df, x='co2', y='pm25', color='pm25_category',
+                                     color_discrete_map=CPCB_COLORS,
+                                     title="PM2.5 vs CO₂ Correlation",
+                                     trendline="ols")
+            st.plotly_chart(fig_scatter1, use_container_width=True)
+        
+        with corr_col2:
+            # Scatter: Temperature vs Humidity
+            fig_scatter2 = px.scatter(df, x='temp', y='rh', color='pm25',
+                                     title="Temperature vs Humidity",
+                                     color_continuous_scale='RdYlGn_r')
+            st.plotly_chart(fig_scatter2, use_container_width=True)
+        
+        # Correlation heatmap
+        corr_data = df[['pm25', 'co2', 'temp', 'rh']].corr()
+        fig_heatmap = px.imshow(corr_data, text_auto=True, aspect="auto",
+                                title="Parameter Correlation Matrix",
+                                color_continuous_scale='RdBu_r')
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    
+    with tab4:
+        # Real-time gauges
+        gauge_col1, gauge_col2, gauge_col3 = st.columns(3)
+        
+        with gauge_col1:
+            fig_gauge_pm25 = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=pm25_val,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "PM2.5 (µg/m³)"},
+                delta={'reference': 30},
+                gauge={
+                    'axis': {'range': [None, 350]},
+                    'bar': {'color': "darkblue"},
+                    'steps': [
+                        {'range': [0, 30], 'color': "#009865"},
+                        {'range': [30, 60], 'color': "#98CE00"},
+                        {'range': [60, 90], 'color': "#FFFF00"},
+                        {'range': [90, 120], 'color': "#FF7E00"},
+                        {'range': [120, 250], 'color': "#FF0000"},
+                        {'range': [250, 350], 'color': "#7E0023"}
+                    ],
+                    'threshold': {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': 120}
+                }
+            ))
+            st.plotly_chart(fig_gauge_pm25, use_container_width=True)
+        
+        with gauge_col2:
+            fig_gauge_co2 = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=latest.get('co2', 0),
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "CO₂ (ppm)"},
+                delta={'reference': 1000},
+                gauge={
+                    'axis': {'range': [None, 2000]},
+                    'bar': {'color': "darkgreen"},
+                    'steps': [
+                        {'range': [0, 800], 'color': "lightgreen"},
+                        {'range': [800, 1000], 'color': "yellow"},
+                        {'range': [1000, 2000], 'color': "red"}
+                    ],
+                    'threshold': {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': 1000}
+                }
+            ))
+            st.plotly_chart(fig_gauge_co2, use_container_width=True)
+        
+        with gauge_col3:
+            fig_gauge_comfort = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=humidex if 'humidex' in locals() else 25,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Comfort Index"},
+                gauge={
+                    'axis': {'range': [10, 45]},
+                    'bar': {'color': "purple"},
+                    'steps': [
+                        {'range': [10, 20], 'color': "lightblue"},
+                        {'range': [20, 30], 'color': "lightgreen"},
+                        {'range': [30, 40], 'color': "orange"},
+                        {'range': [40, 45], 'color': "red"}
+                    ]
+                }
+            ))
+            st.plotly_chart(fig_gauge_comfort, use_container_width=True)
 
     # lightweight analytics: ACH estimate & 30m forecast
     met1, met2 = st.columns(2)
