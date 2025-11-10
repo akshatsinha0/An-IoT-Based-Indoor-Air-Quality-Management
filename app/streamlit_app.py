@@ -102,11 +102,13 @@ site = top_col4.selectbox("Site", sites, index=0)
 
 # seeding / reset controls
 with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
-    c1,c2,c3,c4 = st.columns([2,1,1,1])
-    hours = c1.slider("Seed hours", 6, 72, 24, step=6)
-    seed_clicked = c2.button("Seed demo data from our dataset", disabled=not api_ok)
-    seed_all_clicked = c3.button("Seed all sites", disabled=not api_ok)
-    reset_clicked = c4.button("Reset data", disabled=not api_ok)
+    c1,c2,c3,c4,c5 = st.columns([1.5,1,1,1,1])
+    hours = c1.slider("Seed hours", 1, 72, 6, step=1)
+    seed_clicked = c2.button("Seed Current Site", disabled=not api_ok)
+    seed_all_clicked = c3.button("Seed All Sites", disabled=not api_ok)
+    seed_variety_clicked = c4.button("Seed Variety Pack", disabled=not api_ok)
+    reset_clicked = c5.button("Reset", disabled=not api_ok)
+    
     if seed_clicked and api_ok:
         try:
             res = api_post("/seed", {"hours": hours, "site": site, "period_seconds": 60})
@@ -124,6 +126,23 @@ with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
             st.rerun()
         except Exception as e:
             st.error(f"Seeding failed: {e}")
+    if seed_variety_clicked and api_ok:
+        try:
+            # Seed different time periods and intervals for variety
+            sites_config = [
+                ("Lab", hours, 120),  # 2-min intervals
+                ("Classroom", hours, 60),  # 1-min intervals
+                ("Canteen", hours, 180),  # 3-min intervals
+                ("Office", hours//2, 90),  # Half duration, 1.5-min intervals
+                ("Library", hours//3, 150),  # Third duration, 2.5-min intervals
+            ]
+            for s, h, period in sites_config:
+                api_post("/seed", {"hours": h, "site": s, "period_seconds": period})
+            st.success(f"Seeded variety pack: 5 sites with different patterns")
+            get_readings.clear(); get_exposure.clear(); get_sites.clear()
+            st.rerun()
+        except Exception as e:
+            st.error(f"Seeding failed: {e}")
     if reset_clicked and api_ok:
         try:
             api_post("/reset", {"site": site})
@@ -134,16 +153,27 @@ with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
     if not api_ok:
         st.caption("Backend API is offline — start it: uvicorn backend.main:app --reload --port 8000")
 
-colA, colB, colC, colD, colE = st.columns(5)
+colA, colB, colC, colD, colE, colF = st.columns(6)
 
 df = get_readings(site=site, window="24h") if api_ok else pd.DataFrame()
 if not df.empty:
     df["ts"] = pd.to_datetime(df["ts"]) 
     latest = df.iloc[-1]
-    colA.metric("PM2.5 (µg/m³)", f"{latest.get('pm25',np.nan):.1f}")
+    
+    # Get CPCB category and color
+    pm25_val = latest.get('pm25', np.nan)
+    pm25_cat = latest.get('pm25_category', 'Unknown')
+    cat_colors = {
+        "Good": "🟢", "Satisfactory": "🟡", "Moderately Polluted": "🟠",
+        "Poor": "🔴", "Very Poor": "🟣", "Severe": "🟤"
+    }
+    pm25_icon = cat_colors.get(pm25_cat, "⚪")
+    
+    colA.metric("PM2.5 (µg/m³)", f"{pm25_val:.1f}", delta=f"{pm25_cat} {pm25_icon}")
     colB.metric("CO₂ (ppm)", f"{latest.get('co2',np.nan):.0f}")
     colC.metric("Temperature (°C)", f"{latest.get('temp',np.nan):.1f}")
     colD.metric("Humidity (%)", f"{latest.get('rh',np.nan):.0f}")
+    
     # simple thermal comfort (humidex-like)
     try:
         T = float(latest.get('temp', np.nan))
@@ -151,6 +181,19 @@ if not df.empty:
         e = 6.112*np.exp((17.67*T)/(T+243.5))*RH/100.0
         humidex = T + (5/9)*(e-10)
         colE.metric("Comfort index", f"{humidex:.1f}")
+    except Exception:
+        pass
+    
+    # Data freshness indicator
+    try:
+        time_diff = (pd.Timestamp.utcnow() - df["ts"].iloc[-1]).total_seconds()
+        if time_diff < 60:
+            freshness = f"🟢 {time_diff:.0f}s ago"
+        elif time_diff < 300:
+            freshness = f"🟡 {time_diff/60:.0f}m ago"
+        else:
+            freshness = f"🔴 {time_diff/60:.0f}m ago"
+        colF.metric("Data Age", freshness)
     except Exception:
         pass
 else:

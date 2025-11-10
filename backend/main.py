@@ -237,6 +237,18 @@ def seed(payload: SeedIn):
             "co2_base": 900, "co2_trend": 1.8, "co2_noise": 250,
             "temp_base": 28, "temp_trend": 0.2, "temp_noise": 4,
             "rh_base": 60, "rh_trend": 0.1, "rh_noise": 12
+        },
+        "Office": {
+            "pm25_base": 15, "pm25_trend": 0.5, "pm25_noise": 18,
+            "co2_base": 700, "co2_trend": 0.8, "co2_noise": 180,
+            "temp_base": 23, "temp_trend": 0.12, "temp_noise": 2.5,
+            "rh_base": 50, "rh_trend": 0.06, "rh_noise": 9
+        },
+        "Library": {
+            "pm25_base": 5, "pm25_trend": 0.2, "pm25_noise": 10,
+            "co2_base": 550, "co2_trend": 0.3, "co2_noise": 120,
+            "temp_base": 22, "temp_trend": 0.08, "temp_noise": 1.5,
+            "rh_base": 42, "rh_trend": 0.04, "rh_noise": 6
         }
     }
     
