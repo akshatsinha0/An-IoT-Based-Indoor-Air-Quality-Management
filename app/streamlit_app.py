@@ -26,6 +26,11 @@ except Exception:
 
 st.title("An IoT-Based Indoor Air Quality Management")
 
+# Auto-refresh every 5 seconds
+st_autorefresh = st.empty()
+with st_autorefresh:
+    st.caption("🔄 Auto-refreshing every 5 seconds...")
+
 # helpers
 CPCB_COLORS = {
     "Good": "#009865",
@@ -91,9 +96,24 @@ except Exception:
     api_ok = False
 top_col1.markdown(f"**Data source:** {'API' if api_ok else 'Offline'} | `{API}`")
 if api_ok:
-    top_col2.metric("Stored points", f"{health.get('count',0):,}")
+    total_records = health.get('count', 0)
+    top_col2.metric("Total Records", f"{total_records:,}", help="Total sensor readings stored in database")
     last = health.get("last")
-    top_col3.metric("Last update", last if last else "—")
+    if last:
+        try:
+            last_dt = pd.to_datetime(last)
+            time_ago = (pd.Timestamp.utcnow() - last_dt).total_seconds()
+            if time_ago < 60:
+                last_display = f"{time_ago:.0f}s ago"
+            elif time_ago < 3600:
+                last_display = f"{time_ago/60:.0f}m ago"
+            else:
+                last_display = f"{time_ago/3600:.1f}h ago"
+            top_col3.metric("Last Update", last_display, help=f"Latest reading: {last}")
+        except:
+            top_col3.metric("Last Update", last if last else "—")
+    else:
+        top_col3.metric("Last Update", "—")
 else:
     top_col2.warning("API offline — use Seed")
 
@@ -135,10 +155,14 @@ with st.expander("Demo controls (seed/reset)", expanded=not api_ok):
                 ("Canteen", hours, 180),  # 3-min intervals
                 ("Office", hours//2, 90),  # Half duration, 1.5-min intervals
                 ("Library", hours//3, 150),  # Third duration, 2.5-min intervals
+                ("Hospital", hours//2, 100),  # Medical facility
+                ("Gym", hours//3, 80),  # High activity
+                ("Auditorium", hours//2, 110),  # Large gathering
+                ("Parking", hours//4, 200),  # Vehicle emissions
             ]
             for s, h, period in sites_config:
                 api_post("/seed", {"hours": h, "site": s, "period_seconds": period})
-            st.success(f"Seeded variety pack: 5 sites with different patterns")
+            st.success(f"Seeded variety pack: 9 sites with different patterns")
             get_readings.clear(); get_exposure.clear(); get_sites.clear()
             st.rerun()
         except Exception as e:
@@ -310,7 +334,67 @@ if api_ok:
     except Exception:
         st.caption("Events unavailable")
 
+# Statistics Summary
+if not df.empty:
+    st.subheader("Statistical Summary")
+    stat_cols = st.columns(4)
+    
+    for idx, param in enumerate(['pm25', 'co2', 'temp', 'rh']):
+        if param in df.columns:
+            with stat_cols[idx]:
+                param_data = df[param].astype(float)
+                st.markdown(f"**{param.upper()}**")
+                st.write(f"Min: {param_data.min():.1f}")
+                st.write(f"Mean: {param_data.mean():.1f}")
+                st.write(f"Max: {param_data.max():.1f}")
+                st.write(f"Std: {param_data.std():.1f}")
+
+# Site Comparison
+if api_ok:
+    st.subheader("Multi-Site Comparison")
+    try:
+        all_sites = get_sites()
+        if len(all_sites) > 1:
+            comparison_data = []
+            for s in all_sites:
+                site_df = get_readings(site=s, window="24h")
+                if not site_df.empty:
+                    site_df["ts"] = pd.to_datetime(site_df["ts"])
+                    latest_site = site_df.iloc[-1]
+                    comparison_data.append({
+                        "Site": s,
+                        "PM2.5": latest_site.get('pm25', 0),
+                        "CO2": latest_site.get('co2', 0),
+                        "Temp": latest_site.get('temp', 0),
+                        "Humidity": latest_site.get('rh', 0),
+                        "Category": latest_site.get('pm25_category', 'Unknown')
+                    })
+            
+            if comparison_data:
+                comp_df = pd.DataFrame(comparison_data)
+                st.dataframe(comp_df, use_container_width=True)
+                
+                # Comparison charts
+                comp_col1, comp_col2 = st.columns(2)
+                with comp_col1:
+                    fig_pm25 = px.bar(comp_df, x="Site", y="PM2.5", color="Category",
+                                      color_discrete_map=CPCB_COLORS,
+                                      title="PM2.5 Comparison Across Sites")
+                    st.plotly_chart(fig_pm25, use_container_width=True)
+                
+                with comp_col2:
+                    fig_co2 = px.bar(comp_df, x="Site", y="CO2",
+                                     title="CO₂ Comparison Across Sites")
+                    st.plotly_chart(fig_co2, use_container_width=True)
+    except Exception as e:
+        st.caption(f"Comparison unavailable: {e}")
+
 # export
 if not df.empty:
     csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("Download CSV", data=csv, file_name=f"iaq_{site}.csv", mime="text/csv")
+    st.download_button("📥 Download CSV", data=csv, file_name=f"iaq_{site}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv")
+
+# Auto-refresh trigger
+import time
+time.sleep(5)
+st.rerun()

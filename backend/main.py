@@ -249,6 +249,30 @@ def seed(payload: SeedIn):
             "co2_base": 550, "co2_trend": 0.3, "co2_noise": 120,
             "temp_base": 22, "temp_trend": 0.08, "temp_noise": 1.5,
             "rh_base": 42, "rh_trend": 0.04, "rh_noise": 6
+        },
+        "Hospital": {
+            "pm25_base": 8, "pm25_trend": 0.25, "pm25_noise": 12,
+            "co2_base": 580, "co2_trend": 0.4, "co2_noise": 130,
+            "temp_base": 21, "temp_trend": 0.09, "temp_noise": 1.8,
+            "rh_base": 48, "rh_trend": 0.05, "rh_noise": 7
+        },
+        "Gym": {
+            "pm25_base": 25, "pm25_trend": 1.0, "pm25_noise": 28,
+            "co2_base": 950, "co2_trend": 1.5, "co2_noise": 220,
+            "temp_base": 27, "temp_trend": 0.18, "temp_noise": 3.5,
+            "rh_base": 58, "rh_trend": 0.09, "rh_noise": 11
+        },
+        "Auditorium": {
+            "pm25_base": 18, "pm25_trend": 0.6, "pm25_noise": 20,
+            "co2_base": 850, "co2_trend": 1.0, "co2_noise": 190,
+            "temp_base": 25, "temp_trend": 0.13, "temp_noise": 2.8,
+            "rh_base": 52, "rh_trend": 0.07, "rh_noise": 9.5
+        },
+        "Parking": {
+            "pm25_base": 50, "pm25_trend": 2.0, "pm25_noise": 40,
+            "co2_base": 1100, "co2_trend": 2.2, "co2_noise": 280,
+            "temp_base": 29, "temp_trend": 0.22, "temp_noise": 4.5,
+            "rh_base": 65, "rh_trend": 0.11, "rh_noise": 13
         }
     }
     
