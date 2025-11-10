@@ -392,7 +392,7 @@ if api_ok:
 # export
 if not df.empty:
     csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("📥 Download CSV", data=csv, file_name=f"iaq_{site}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv")
+    st.download_button("Download CSV", data=csv, file_name=f"iaq_{site}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv")
 
 # Auto-refresh trigger
 import time
