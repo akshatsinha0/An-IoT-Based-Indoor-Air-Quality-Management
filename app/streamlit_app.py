@@ -24,6 +24,24 @@ try:
 except Exception:
     API = os.environ.get("IAQ_API", "http://127.0.0.1:8000").rstrip("/")
 
+# Optionally start embedded FastAPI if external API is not reachable (helps on Streamlit Cloud)
+_EMBED_ON_FAIL = os.environ.get("IAQ_EMBED_API", "1") == "1"
+
+@st.cache_resource(show_spinner=False)
+def _spawn_embedded_api():
+    import threading, time
+    try:
+        from backend.main import app as fastapi_app
+        import uvicorn
+    except Exception as e:
+        return f"import_error: {e}"
+    def _run():
+        uvicorn.run(fastapi_app, host="127.0.0.1", port=int(os.environ.get("IAQ_PORT", "8000")), log_level="warning")
+    th = threading.Thread(target=_run, daemon=True)
+    th.start()
+    time.sleep(1.5)
+    return "started"
+
 st.title("An IoT-Based Indoor Air Quality Management")
 
 # Auto-refresh every 5 seconds
@@ -94,6 +112,13 @@ try:
     health = api_get("/")
 except Exception:
     api_ok = False
+    if _EMBED_ON_FAIL:
+        _spawn_embedded_api()
+        try:
+            health = api_get("/")
+            api_ok = True
+        except Exception:
+            api_ok = False
 top_col1.markdown(f"**Data source:** {'API' if api_ok else 'Offline'} | `{API}`")
 if api_ok:
     total_records = health.get('count', 0)
