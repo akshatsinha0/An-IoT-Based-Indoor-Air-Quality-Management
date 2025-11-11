@@ -6,4 +6,5 @@ fastapi
 uvicorn
 requests
 pydantic
+httpx
 statsmodels

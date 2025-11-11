@@ -25,7 +25,10 @@ except Exception:
     API = os.environ.get("IAQ_API", "http://127.0.0.1:8000").rstrip("/")
 
 # Optionally start embedded FastAPI if external API is not reachable (helps on Streamlit Cloud)
-_EMBED_ON_FAIL = os.environ.get("IAQ_EMBED_API", "1") == "1"
+try:
+    _EMBED_ON_FAIL = str(st.secrets.get("embed_api", "1")) == "1"
+except Exception:
+    _EMBED_ON_FAIL = os.environ.get("IAQ_EMBED_API", "1") == "1"
 
 @st.cache_resource(show_spinner=False)
 def _spawn_embedded_api():
@@ -41,6 +44,21 @@ def _spawn_embedded_api():
     th.start()
     time.sleep(1.5)
     return "started"
+
+@st.cache_resource(show_spinner=False)
+def _local_asgi_client():
+    """Create an httpx client bound directly to the FastAPI ASGI app.
+    This avoids opening a TCP port, which is safer for Streamlit Cloud.
+    """
+    try:
+        import httpx
+        from httpx import ASGITransport
+        from backend.main import app as fastapi_app
+    except Exception:
+        return None
+    transport = ASGITransport(app=fastapi_app)
+    client = httpx.Client(transport=transport, base_url="http://local")
+    return client
 
 st.title("An IoT-Based Indoor Air Quality Management")
 
@@ -61,15 +79,39 @@ CPCB_COLORS = {
 
 @st.cache_data(ttl=5)
 def api_get(path: str, params=None):
-    r = requests.get(f"{API}{path}", params=params or {}, timeout=5)
-    r.raise_for_status()
-    return r.json()
+    # Try external API first
+    try:
+        r = requests.get(f"{API}{path}", params=params or {}, timeout=5)
+        r.raise_for_status()
+        st.session_state["use_local_api"] = False
+        return r.json()
+    except Exception:
+        pass
+    # Fallback to local ASGI client (embedded FastAPI)
+    client = _local_asgi_client()
+    if client is not None:
+        resp = client.get(path, params=params or {})
+        resp.raise_for_status()
+        st.session_state["use_local_api"] = True
+        return resp.json()
+    raise RuntimeError("API not reachable")
+
 
 def api_post(path: str, json=None):
-    r = requests.post(f"{API}{path}", json=json or {}, timeout=15)
-    r.raise_for_status()
-    return r.json()
-
+    try:
+        r = requests.post(f"{API}{path}", json=json or {}, timeout=15)
+        r.raise_for_status()
+        st.session_state["use_local_api"] = False
+        return r.json()
+    except Exception:
+        pass
+    client = _local_asgi_client()
+    if client is not None:
+        resp = client.post(path, json=json or {})
+        resp.raise_for_status()
+        st.session_state["use_local_api"] = True
+        return resp.json()
+    raise RuntimeError("API not reachable")
 @st.cache_data(ttl=5)
 def get_sites():
     try:
@@ -119,7 +161,14 @@ except Exception:
             api_ok = True
         except Exception:
             api_ok = False
-top_col1.markdown(f"**Data source:** {'API' if api_ok else 'Offline'} | `{API}`")
+mode = "Embedded" if st.session_state.get("use_local_api", False) else ("API" if api_ok else "Offline")
+if mode == "API":
+    top_col1.markdown(f"**Data source:** API | `{API}`")
+elif mode == "Embedded":
+    top_col1.markdown("**Data source:** Embedded | in‑process")
+else:
+    top_col1.markdown(f"**Data source:** Offline | `{API}`")
+
 if api_ok:
     total_records = health.get('count', 0)
     top_col2.metric("Total Records", f"{total_records:,}", help="Total sensor readings stored in database")
