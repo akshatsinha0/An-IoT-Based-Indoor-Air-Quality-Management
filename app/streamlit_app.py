@@ -96,7 +96,7 @@ CPCB_COLORS = {
 @st.cache_data(ttl=5)
 def api_get(path: str, params=None):
     # Prefer embedded (in-process) client first so Streamlit Cloud works without TCP
-client, local_mode = _local_client()
+    client, local_mode = _local_client()
     if client is not None:
         try:
             resp = client.get(path, params=params or {})
@@ -120,7 +120,7 @@ client, local_mode = _local_client()
 
 
 def api_post(path: str, json=None):
-client, local_mode = _local_client()
+    client, local_mode = _local_client()
     if client is not None:
         try:
             resp = client.post(path, json=json or {})
