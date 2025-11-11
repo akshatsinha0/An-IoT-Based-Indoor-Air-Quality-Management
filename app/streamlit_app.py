@@ -46,19 +46,29 @@ def _spawn_embedded_api():
     return "started"
 
 @st.cache_resource(show_spinner=False)
-def _local_asgi_client():
-    """Create an httpx client bound directly to the FastAPI ASGI app.
-    This avoids opening a TCP port, which is safer for Streamlit Cloud.
+def _local_client():
+    """Create a local client bound to the FastAPI app, trying httpx first,
+    then FastAPI's TestClient. Returns (client, mode) or (None, reason).
     """
+    try:
+        from backend.main import app as fastapi_app
+    except Exception as e:
+        return None, f"import_error: {e}"
+    # Try httpx ASGI transport
     try:
         import httpx
         from httpx import ASGITransport
-        from backend.main import app as fastapi_app
-    except Exception:
-        return None
-    transport = ASGITransport(app=fastapi_app)
-    client = httpx.Client(transport=transport, base_url="http://local")
-    return client
+        transport = ASGITransport(app=fastapi_app)
+        client = httpx.Client(transport=transport, base_url="http://local")
+        return client, "httpx"
+    except Exception as e_httpx:
+        # Fallback to TestClient
+        try:
+            from fastapi.testclient import TestClient
+            client = TestClient(fastapi_app)
+            return client, "testclient"
+        except Exception as e_tc:
+            return None, f"client_error: {e_httpx}; {e_tc}"
 
 st.title("An IoT-Based Indoor Air Quality Management")
 
@@ -79,13 +89,14 @@ CPCB_COLORS = {
 
 @st.cache_data(ttl=5)
 def api_get(path: str, params=None):
-    # Prefer embedded (ASGI) first so Streamlit Cloud works without a TCP server
-    client = _local_asgi_client()
+    # Prefer embedded (in-process) client first so Streamlit Cloud works without TCP
+    client, local_mode = _local_client()
     if client is not None:
         try:
             resp = client.get(path, params=params or {})
             resp.raise_for_status()
             st.session_state["use_local_api"] = True
+            st.session_state["local_api_mode"] = local_mode
             return resp.json()
         except Exception:
             pass
@@ -100,12 +111,13 @@ def api_get(path: str, params=None):
 
 
 def api_post(path: str, json=None):
-    client = _local_asgi_client()
+    client, local_mode = _local_client()
     if client is not None:
         try:
             resp = client.post(path, json=json or {})
             resp.raise_for_status()
             st.session_state["use_local_api"] = True
+            st.session_state["local_api_mode"] = local_mode
             return resp.json()
         except Exception:
             pass
@@ -169,7 +181,8 @@ mode = "Embedded" if st.session_state.get("use_local_api", False) else ("API" if
 if mode == "API":
     top_col1.markdown(f"**Data source:** API | `{API}`")
 elif mode == "Embedded":
-    top_col1.markdown("**Data source:** Embedded | in‑process")
+    lm = st.session_state.get("local_api_mode", "embedded")
+    top_col1.markdown(f"**Data source:** Embedded ({lm}) | in‑process")
 else:
     top_col1.markdown(f"**Data source:** Offline | `{API}`")
 
