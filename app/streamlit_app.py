@@ -7,6 +7,12 @@ import streamlit as st
 from datetime import datetime
 from pathlib import Path
 import os
+import sys
+
+# Ensure repo root is on sys.path so `backend` is importable on Streamlit Cloud
+_repo_root = Path(__file__).resolve().parents[1]
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
 
 st.set_page_config(page_title="IAQ Dashboard", layout="wide")
 
@@ -90,43 +96,49 @@ CPCB_COLORS = {
 @st.cache_data(ttl=5)
 def api_get(path: str, params=None):
     # Prefer embedded (in-process) client first so Streamlit Cloud works without TCP
-    client, local_mode = _local_client()
+client, local_mode = _local_client()
     if client is not None:
         try:
             resp = client.get(path, params=params or {})
             resp.raise_for_status()
             st.session_state["use_local_api"] = True
             st.session_state["local_api_mode"] = local_mode
+            st.session_state.pop("api_error", None)
             return resp.json()
-        except Exception:
-            pass
+        except Exception as e:
+            st.session_state["api_error"] = f"embedded_{local_mode}_error: {e}"
     # Fallback to external HTTP API if provided
     try:
         r = requests.get(f"{API}{path}", params=params or {}, timeout=5)
         r.raise_for_status()
         st.session_state["use_local_api"] = False
+        st.session_state.pop("api_error", None)
         return r.json()
     except Exception as e:
+        st.session_state["api_error"] = f"http_error: {e}"
         raise RuntimeError("API not reachable") from e
 
 
 def api_post(path: str, json=None):
-    client, local_mode = _local_client()
+client, local_mode = _local_client()
     if client is not None:
         try:
             resp = client.post(path, json=json or {})
             resp.raise_for_status()
             st.session_state["use_local_api"] = True
             st.session_state["local_api_mode"] = local_mode
+            st.session_state.pop("api_error", None)
             return resp.json()
-        except Exception:
-            pass
+        except Exception as e:
+            st.session_state["api_error"] = f"embedded_{local_mode}_error: {e}"
     try:
         r = requests.post(f"{API}{path}", json=json or {}, timeout=15)
         r.raise_for_status()
         st.session_state["use_local_api"] = False
+        st.session_state.pop("api_error", None)
         return r.json()
     except Exception as e:
+        st.session_state["api_error"] = f"http_error: {e}"
         raise RuntimeError("API not reachable") from e
 @st.cache_data(ttl=5)
 def get_sites():
@@ -185,6 +197,9 @@ elif mode == "Embedded":
     top_col1.markdown(f"**Data source:** Embedded ({lm}) | in‑process")
 else:
     top_col1.markdown(f"**Data source:** Offline | `{API}`")
+    err = st.session_state.get("api_error")
+    if err:
+        top_col1.caption(f"Backend error: {err}")
 
 if api_ok:
     total_records = health.get('count', 0)
