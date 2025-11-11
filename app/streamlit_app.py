@@ -79,39 +79,43 @@ CPCB_COLORS = {
 
 @st.cache_data(ttl=5)
 def api_get(path: str, params=None):
-    # Try external API first
+    # Prefer embedded (ASGI) first so Streamlit Cloud works without a TCP server
+    client = _local_asgi_client()
+    if client is not None:
+        try:
+            resp = client.get(path, params=params or {})
+            resp.raise_for_status()
+            st.session_state["use_local_api"] = True
+            return resp.json()
+        except Exception:
+            pass
+    # Fallback to external HTTP API if provided
     try:
         r = requests.get(f"{API}{path}", params=params or {}, timeout=5)
         r.raise_for_status()
         st.session_state["use_local_api"] = False
         return r.json()
-    except Exception:
-        pass
-    # Fallback to local ASGI client (embedded FastAPI)
-    client = _local_asgi_client()
-    if client is not None:
-        resp = client.get(path, params=params or {})
-        resp.raise_for_status()
-        st.session_state["use_local_api"] = True
-        return resp.json()
-    raise RuntimeError("API not reachable")
+    except Exception as e:
+        raise RuntimeError("API not reachable") from e
 
 
 def api_post(path: str, json=None):
+    client = _local_asgi_client()
+    if client is not None:
+        try:
+            resp = client.post(path, json=json or {})
+            resp.raise_for_status()
+            st.session_state["use_local_api"] = True
+            return resp.json()
+        except Exception:
+            pass
     try:
         r = requests.post(f"{API}{path}", json=json or {}, timeout=15)
         r.raise_for_status()
         st.session_state["use_local_api"] = False
         return r.json()
-    except Exception:
-        pass
-    client = _local_asgi_client()
-    if client is not None:
-        resp = client.post(path, json=json or {})
-        resp.raise_for_status()
-        st.session_state["use_local_api"] = True
-        return resp.json()
-    raise RuntimeError("API not reachable")
+    except Exception as e:
+        raise RuntimeError("API not reachable") from e
 @st.cache_data(ttl=5)
 def get_sites():
     try:
